@@ -177,8 +177,8 @@ sort(unique(mydata_clean$date))
 criteria.file <- "Pesticide Benchmarks and Criteria_Feb 04 2014.csv"
 criteria <- read.csv(file=paste0("\\\\Deqhq1\\PSP\\Rscripts\\Wasco\\Wasco2013\\", criteria.file), row.names=1, colClasses = "character")
 
-min.DEQ.criteria <- criteria$min.AL.DEQ.WQS
-min.EPA.criteria <- criteria$min.AL.EPA.benchmark
+min.DEQ.criteria <- as.numeric(criteria$min.AL.DEQ.WQS)
+min.EPA.criteria <- as.numeric(criteria$min.AL.EPA.benchmark)
 min.criteria <- data.frame(criteria$Pollutant, min.DEQ.criteria, min.EPA.criteria, criteria$minimum.criteria.benchmark.value, stringsAsFactors = FALSE)
 
 #matching the analytes name with the min.criteria name----
@@ -198,6 +198,28 @@ min.criteria[criteria$Pollutant == '2,4-D','criteria.minimum.criteria.benchmark.
 #delete repeated imidacloprid
 min.criteria <- min.criteria[-(382), ]
 
+######################################
+#min.criteria0 <- min.criteria
+min.criteria <- subset(min.criteria0, (min.criteria0$criteria.minimum.criteria.benchmark.value) != "")
+for(i in 1:nrow(min.criteria)){
+  if(min.criteria$criteria.Pollutant[i] == "Chlorpyrifos"){  #Chlorpyrifos is only standard where we draw both lines
+    min.criteria$label[i] <- (paste0("\nAcute WQS = 0.083 ug/L\nChronic WQS = 0.041 ug/L"))
+  }else{
+    if(min.criteria$criteria.Pollutant[i] != "Chlorpyrifos" & is.na(min.criteria$min.DEQ.criteria[i])==FALSE){  #if there is a DEQ criteria
+      min.criteria$label[i] <- (paste0("\nDEQ WQS = ", min.criteria$min.DEQ.criteria[i], " ug/L"))
+    }else{
+      if(is.na(min.criteria$min.DEQ.criteria[i])==TRUE & is.na(min.criteria$min.EPA.criteria[i])==FALSE){  #if there is no DEQ criteria and there is an EPA benchmark, 
+        min.criteria$label[i] <- (paste0("\nEPA benchmark = ", min.criteria$min.EPA.criteria[i], " ug/L"))
+      }else{
+        if(is.na(min.criteria$min.DEQ.criteria[i])==TRUE & is.na(min.criteria$min.EPA.criteria[i])==TRUE){  #if there is no DEQ criteria or EPA benchmark
+          min.criteria$label[i] <- (paste0("\nNo benchmark available")) 
+        }
+      }
+    }
+  }
+}
+######################################
+
 ####duplicate dataset.
 mydata_clean_noV <- mydata_clean
 
@@ -216,7 +238,7 @@ for(i in 1:nrow(mydata_clean_noV)){
       if(mydata_clean_noV$Units[i] == "µg/L"){
         mydata_clean_noV$RESULT_clean.ug.l[i] <- mydata_clean_noV$RESULT_clean[i] #µg to ug
       } else {
-        mydata_clean_noV$RESULT_clean.ug.l[i] <- NA #some other units
+        mydata_clean_noV$RESULT_clean.ug.l[i] <- NA #some other units (e.g. conductivity)
       }
     }
   }
@@ -275,7 +297,6 @@ for(i in 1:nrow(mydata_clean_noV)){
   }
 }
 
-
 ####check that these analytes truly do NOT have a benchmark value
 aaa <- (mydata_clean_noV[mydata_clean_noV$exceed.type == "no benchmark available",])
 unique(aaa$Analyte) #confirmed, no criteria for TS, and DEET, BAM, pronamide, 44DDD, 44DDE, chlorpropham, acetamiprid
@@ -285,6 +306,8 @@ rm(mydata)
 
 ##re-make detections subset with the new columns
 detections <- subset(mydata_clean_noV, is.na(RESULT_clean) == FALSE) #subset out the NDs 
+index <-  (order(detections$Basin))
+detections <- detections[(index),]
 
 ####Output a summary table 
 Det.freq.table <- data.frame("Station"=NA, "Station.Description"=NA, "Parameter"=NA,"Average"=NA, "Max"=NA, "criteria"=NA, "ALR"=NA, "N Samples" = NA, "percent.det.freq"=NA, "exceed.type"=NA, stringsAsFactors=FALSE)
@@ -353,6 +376,7 @@ for(ii in analytes){
       n.exceed.type <- nrow(subset.points)#ddd
       percent.det.freq <- (n.exceed.type/n.tot)*100
       
+      Basin <- min(subset.points$Basin)
       Station <- min(subset.points$Station_Number)
       Station.Description <- min(subset.points$Station_Description)
       Analyte <- min(subset.points$Analyte)
@@ -362,110 +386,126 @@ for(ii in analytes){
       criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
       ALR <- Max/criteria
       
-      df1 <- data.frame("Station"="Basin aggregate", "Station.Description"="Basin aggregate", "Parameter"=Analyte,"Average"=Average, "Max"=Max, "criteria"=criteria, "ALR"="Not Calculated", "N Samples" = n.exceed.type, "percent.det.freq"=percent.det.freq, "exceed.type"=iii, stringsAsFactors=FALSE)
+      df1 <- data.frame("Station"=Basin, "Station.Description"=Basin, "Parameter"=Analyte,"Average"=Average, "Max"=Max, "criteria"=criteria, "ALR"="Not Calculated", "N Samples" = n.exceed.type, "percent.det.freq"=percent.det.freq, "exceed.type"=iii, stringsAsFactors=FALSE)
       Det.freq.table <- rbind(df1, Det.freq.table)
     }
   }
 }
 
 #Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
-write.csv(Det.freq.table, paste(outpath.plot.points,"State_2014_detection_frequencies.csv",sep="")) 
+write.csv(Det.freq.table, paste(outpath.plot.points,"State_2013_detection_frequencies.csv",sep="")) 
 
-write.csv(mydata_clean_noV, paste(outpath.plot.points,"State_2014_mydata_clean_noV.csv",sep="")) 
+write.csv(mydata_clean_noV, paste(outpath.plot.points,"State_2013_mydata_clean_noV.csv",sep="")) 
 
 
-####
+
+
+
+
+
+
+
+
+
+
+
+#########################################################################################################
 ####loop through analyte list and graph multiple stations
 
-xicides <- analytes
-ii <- "2,4-D"
 
 
-for(ii in analytes){
-  subset.points <- subset(detections, Analyte == ii)
-  col.v <- c("cyan4","coral4", "darkolivegreen4", "darkorchid4", "darkgoldenrod4")
-  pch.v <- c(seq(15, 18), 4, seq(19, 25), seq(1, 3), seq(5,14))
-  
-  if(length(subset.points$RESULT_clean)>0){
-    x.min <- min(subset.points$date) #min of subset date
-    x.max <- max(subset.points$date) #max of subset date
-    x.lim <- c("2013/03/25", "2013/11/20")
-    x.lim <- if(length(subset.points$RESULT_clean) >= 1){
-      as.Date(x.lim, "%Y/%m/%d")  
-    }else{
-      c(x.min, x.max) ####define the data domain for graph
-    }
-    y.min <- 0
-    y.max <- max(subset.points$RESULT_clean.ug.l) #max of data for graph
-    #     if(ii == "Chlorpyrifos") y.max <- 0.083 #exception to accomodate chlorpyrifos secondary WQS
-    y.lim <- c(y.min,y.max + (1.*y.max)) ####define the data range ####change head space here
-    # y.lim <- c(y.min,y.max + (.1*y.max)) ####define the data range ####head space is very small for these analytes <- c("Acifluorfen", "2,4-D", "Diuron", "MCPA", "MCPP", "Sulfometuron-methyl")
-    x.lab <- "2013"
-    y.lab <- paste0(ii, " (ug/L)")
-    title <- paste0("")
-    file.name.ts <- paste0("Group_", ii, "_timeseries.png")
-    
-    png(filename=file.name.ts ,width = 700, height = 400) ####create a png with the station name in the filepath specified above
-    par(xpd=NA,oma=c(0,0,4,0), mar=c(5.1,4.1,1.1,2.1)) 
-    plot(subset.points$date, subset.points$RESULT_clean.ug.l, pch=NA, xlim=x.lim, ylim=y.lim, xlab=x.lab, ylab=y.lab, cex.axis=1.5, cex.lab=1.5, bty="L", log=log.scale) ####plot the outline of the points  
-    
-    numeric.criterion.DEQ <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == ii,'min.DEQ.criteria'])
-    numeric.criterion.EPA <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == ii,'min.EPA.criteria'])
-    if(ii == "2,4-D") numeric.criterion.EPA  <- 13.1
-    
-    for(p in 1:(length(station.list))){
-      subset.points.i <- subset(subset.points, Station_Number == station.list[p])
-      points(subset.points.i$date, subset.points.i$RESULT_clean.ug.l, col=col.v[p], pch=pch.v[p], cex=1.8)
-      #exceeds.points.i <- subset.points.i[subset.points.i$final_digress == 1,]   
-      #points(exceeds.points.i$date, exceeds.points.i$RESULT_clean.ug.l, col="red", bg="red", pch=pch.v[p], cex=1.8) ####plot the exceedances
-    }
-    
-    
-    #     if(length(numeric.criterion.DEQ) < 0 || is.na(numeric.criterion.DEQ) == FALSE){
-    #       next
-    #     }else{
-    
-    
-    #draw DEQ line
-    if(length(numeric.criterion.DEQ) > 0){
-      if(is.na(numeric.criterion.DEQ) == FALSE){
-        lines(x=x.lim, y=c(numeric.criterion.DEQ, numeric.criterion.DEQ), lty=2)#draw WQS
-        DEQ.ex <- 999
-      }
-    } 
-    
-    
-    #draw EPA line (except chlorpyrifos)
-    if(ii == "Chlorpyrifos"){
-      lines(x=x.lim, y=c(0.083, 0.083), lty=3)#draw Acute Chlorpyrifos WQS (only graph with two WQS)
-    }else{
-      if(length(numeric.criterion.EPA) > 0){
-        if(is.na(numeric.criterion.EPA) == FALSE){
-          lines(x=x.lim, y=c(numeric.criterion.EPA, numeric.criterion.EPA), lty=4)#draw WQS 
-          EPA.ex <- 1
+install.packages("ggplot2")
+library(ggplot2)
+library(scales)
+#ggplot 
+#single plots
+#stations sorted by shape
+
+B <- "Hood River"
+ii <- "Deisopropylatrazine"
+ii <- "Total Solids"
+B <- "Wasco"
+ii <- "Chlorpyrifos"
+B <- "Yamhill"
+ii <- "Bifenthrin"
+ii <- "Conductivity"
+
+for(B in unique(mydata_clean_noV$Basin)){
+  subset.B <- subset(mydata_clean_noV, Basin == B)
+  for(ii in analytes){
+    subset.ii <- subset(subset.B, Analyte == ii)
+    subset.ii <- subset(subset.ii, is.na(subset.ii$RESULT_clean.ug.l) == FALSE)
+    print(paste0(ii, ": n=", length(subset.ii$RESULT)))
+    if(length(subset.ii$RESULT) > 0 & is.na(sum(subset.ii$RESULT_clean.ug.l))==FALSE){
+      numeric.criterion.graph <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == ii,'criteria.minimum.criteria.benchmark.value']) #find the lowest EPA AL benchmark
+      numeric.criterion.label <- min.criteria[min.criteria$criteria.Pollutant == ii,'label'] #find the lowest DEQ AL benchmark
+      a <- ggplot(data = subset.ii, #data source is the subset of Basin and analyte
+                  aes(x = date, #x axis is dates
+                      y = RESULT_clean.ug.l, #y axis is numeric result
+                      shape=Station_Description, #change point shapes by station
+                      color=Station_Description)) #change point colors by station
+      a <- a + geom_point(size = 5) #set the point size
+      a <- a + xlab("") + ylab(paste0("ug/L")) #write the labels
+      a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
+      a <- a + theme(panel.grid.minor.x = element_blank())
+      a <- a + theme_bw()
+      a <- a + coord_cartesian(xlim=c(min(subset.B$date)-1, max(subset.B$date)+1))
+      a <- a + ylim(c(0, max(subset.ii$RESULT_clean.ug.l*1.8))) #set the y range from zero to some multiplier of the max result to increase the head space
+      #benchmarks lines and labels  
+      if(length(numeric.criterion.graph)==0){  #if there is NO DEQ criteria or EPA benchmark
+        title <- (paste0(B, " 2014\n", ii, "\nNo benchmark available")) 
+      }else{
+        if(ii != "Chlorpyrifos" & ii != "2,4-D" & length(numeric.criterion.graph)>0){  #if there IS DEQ criteria or EPA benchmark
+          a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
+          title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
+        }else{
+          if(ii == "Chlorpyrifos"){  #Chlorpyrifos is only standard where we draw both lines
+            a <- a + geom_hline(yintercept=0.083, linetype=2)  #draw Acute Chlorpyrifos WQS (only graph with two WQS)
+            a <- a + geom_hline(yintercept=0.041, linetype=1)  #draw Chronic Chlorpyrifos WQS (only graph with two WQS)
+            title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
+          }else{
+            if(ii == "2,4-D"){  #Using the "2,4-D Acids and Salts"  
+              a <- a + geom_hline(yintercept=13.1)  
+              title <- (paste0(B, " 2014\n", ii, "\nEPA benchmark = 13.1 ug/L "))
+            }
+          }
         }
       }
-    } 
-    
-    
-    
-    title(main=title, cex.main=1.2, outer=TRUE)
-    
-    #     ###legend for displaying on charts
-    #        legend("topright", 
-    #                  legend=unique(detections$Station_Description), 
-    #                  col=col.v, 
-    #                  pch=pch.v, 
-    #                  xjust=0, yjust=0, box.lty=0, cex=1.2, pt.cex=1.8, horiz=FALSE, 
-    #           )
-    dev.off() ####write the .png
-  }else{print(paste0("non-detect_", ii))}
+      a <- a + ggtitle(title) #write the title and subtitle
+      a <- a + theme(legend.title=element_blank()) #remove title from legend
+      a      
+      ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\2014\\", B, "_", ii, "_2014.jpg"), plot = a)
+    }
+  }
 }
 
 
+#################################################################################
+#ggplot 
+#multiplot
+#stations sorted by shape and color
 
-##################################################################################
-#########
+B <- "Hood River"
+
+for(B in unique(mydata_clean_noV$Basin)){
+  subset.B <- subset(mydata_clean_noV, Basin == B)
+  subset.B <- subset(subset.B, is.na(subset.B$RESULT_clean.ug.l) == FALSE)
+  print(paste0(B, ": n=", length(subset.B$RESULT)))
+  if(sum(subset.B$RESULT_clean.ug.l.subND) > 0){
+    a <- ggplot(data = subset.B, #data source is the subset of Basin and analyte
+                aes(x = date, #x axis dates
+                    y = RESULT_clean.ug.l, #y axis is numeric result
+                    shape=Station_Description, #change point shapes by station
+                    color=Station_Description)) #change point colors by station
+    a <- a + geom_point(size = 4) #set the point size
+    a <- a + xlab("") + ylab(paste0("ug/L")) + ggtitle(paste0(B, " 2014")) #write the labels
+    a <- a + facet_wrap(~Analyte, drop=TRUE, scales = "free_y")
+    a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
+    a
+    ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\2014\\", "multiplot_", B, "_2014.jpg"), plot = a)#, scale=2)
+  }
+}
+
 
 ##################################################################################
 

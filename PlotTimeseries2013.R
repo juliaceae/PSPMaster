@@ -38,7 +38,7 @@ tmp.test <- sqlFetch(channel, "dbo.Repo_Result", stringsAsFactors=FALSE, max=20)
 #Pudding PSP stations 2013 
 #station.list <- c(10000, 11516, 31875, 10646, 10917)
 
-#Build the query for 2014 PSP Work Orders (A note about "Work_Order": When samples are delivered to the lab, 
+#Build the query for 2013 PSP Work Orders (A note about "Work_Order": When samples are delivered to the lab, 
 # they are logged by assigned a Work Order number.  
 # The first two digits of the Work Orders number refer to the last two digits of the year that the samples were received, 
 # the third and fourth digits of the Work Orders number refer to the month that the samples were received, 
@@ -52,7 +52,7 @@ myQuery <- c()
 #for (i in 1:length(station.list)) {
 #qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Station_ID ='",station.list[i],"'  AND Client LIKE '%Pesticide%' AND Project LIKE '%Pudding%' AND (Work_Order LIKE '%130%' OR Work_Order LIKE '%131%') ")
 
-## This line retreives all the pesticide samples received by the lab in 2014.  The query language is written in SQL.
+## This line retreives all the pesticide samples received by the lab in 2013.  The query language is written in SQL.
 qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Client LIKE '%Pesticide%' AND (Work_Order LIKE '%130%' OR Work_Order LIKE '%131%') ")
 ## This line adds the query language to the empty query.
 myQuery <- append(myQuery, qry)
@@ -77,7 +77,7 @@ library(stringr)
 Analyte <- mydata$OrigAnalyte
 Station_Description <- mydata$Station_Description
 Station_Number <- as.numeric(mydata$Station_ID)
-outpath.plot.points <- ("\\\\Deqhq1\\PSP\\Rscripts\\2014\\")
+outpath.plot.points <- ("\\\\Deqhq1\\PSP\\Rscripts\\2013\\")
 setwd(outpath.plot.points)
 log.scale <- ""
 Units <- mydata$Units
@@ -186,12 +186,17 @@ min.criteria <- data.frame(criteria$Pollutant, min.DEQ.criteria, min.EPA.criteri
 criteria.pollutant.list <- unique(min.criteria$criteria.Pollutant)
 Has.min.criteria <- analytes %in% criteria.pollutant.list #Caution!!"analytes" comes from the detections subset only - so NOT all the available criteria will be populated into later datasets!! It WILL skip mismatched (between LEAD analyte name and criteria name) nondetects!!
 check <- data.frame(Has.min.criteria, analytes)
-check  #no minimum criteria/benchmarks exist for Total Solids or DEET or Pronamide 
+check  #no minimum criteria/benchmarks exist for Total Solids or DEET or Pronamide or 3,5-Dichlorobenzoic acid
 #end recursion
 min.criteria[criteria$Pollutant == 'aminomethyl phosphoric acid (AMPA) Glyphosate degradate','criteria.Pollutant'] <- "Aminomethylphosphonic acid (AMPA)" #example for substitutions (first is old name in criteria list, second is new analyte name)
 min.criteria[criteria$Pollutant == '2,6-Dichlorobenzamide (BAM)','criteria.Pollutant'] <- "2,6-Dichlorobenzamide" #example for substitutions (first is old name in criteria list, second is new analyte name)
 min.criteria[criteria$Pollutant == '4,4`-DDD','criteria.Pollutant'] <- "4,4´-DDD" #example for substitutions (first is old name in criteria list, second is new analyte name)
 min.criteria[criteria$Pollutant == '4,4`-DDE','criteria.Pollutant'] <- "4,4´-DDE" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[criteria$Pollutant == 'Endosulfan Sulfate','criteria.Pollutant'] <- "Endosulfan sulfate" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[criteria$Pollutant == 'Propoxur','criteria.Pollutant'] <- "Baygon (Propoxur)" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[criteria$Pollutant == 'MCPA EHE','criteria.Pollutant'] <- "MCPA" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[criteria$Pollutant == 'Sodium acifluorfen','criteria.Pollutant'] <- "Acifluorfen" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[criteria$Pollutant == 'MCPP-p DMAS','criteria.Pollutant'] <- "MCPP" #example for substitutions (first is old name in criteria list, second is new analyte name)
 #change min.criteria table - replace criteria value for 2,4-D with 2,4-D acids and salts
 aaa <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == "2,4-D acids and salts",'criteria.minimum.criteria.benchmark.value'])#benchmark for 2,4-D acids and salts
 min.criteria[criteria$Pollutant == '2,4-D','criteria.minimum.criteria.benchmark.value'] <- aaa 
@@ -200,7 +205,7 @@ min.criteria <- min.criteria[-(382), ]
 
 ######################################
 #min.criteria0 <- min.criteria
-min.criteria <- subset(min.criteria0, (min.criteria0$criteria.minimum.criteria.benchmark.value) != "")
+min.criteria <- subset(min.criteria, criteria.minimum.criteria.benchmark.value != "")
 for(i in 1:nrow(min.criteria)){
   if(min.criteria$criteria.Pollutant[i] == "Chlorpyrifos"){  #Chlorpyrifos is only standard where we draw both lines
     min.criteria$label[i] <- (paste0("\nAcute WQS = 0.083 ug/L\nChronic WQS = 0.041 ug/L"))
@@ -453,20 +458,20 @@ for(B in unique(mydata_clean_noV$Basin)){
       a <- a + ylim(c(0, max(subset.ii$RESULT_clean.ug.l*1.8))) #set the y range from zero to some multiplier of the max result to increase the head space
       #benchmarks lines and labels  
       if(length(numeric.criterion.graph)==0){  #if there is NO DEQ criteria or EPA benchmark
-        title <- (paste0(B, " 2014\n", ii, "\nNo benchmark available")) 
+        title <- (paste0(B, " 2013\n", ii, "\nNo benchmark available")) 
       }else{
         if(ii != "Chlorpyrifos" & ii != "2,4-D" & length(numeric.criterion.graph)>0){  #if there IS DEQ criteria or EPA benchmark
           a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
-          title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
+          title <- (paste0(B, " 2013\n", ii, numeric.criterion.label))
         }else{
           if(ii == "Chlorpyrifos"){  #Chlorpyrifos is only standard where we draw both lines
             a <- a + geom_hline(yintercept=0.083, linetype=2)  #draw Acute Chlorpyrifos WQS (only graph with two WQS)
             a <- a + geom_hline(yintercept=0.041, linetype=1)  #draw Chronic Chlorpyrifos WQS (only graph with two WQS)
-            title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
+            title <- (paste0(B, " 2013\n", ii, numeric.criterion.label))
           }else{
             if(ii == "2,4-D"){  #Using the "2,4-D Acids and Salts"  
               a <- a + geom_hline(yintercept=13.1)  
-              title <- (paste0(B, " 2014\n", ii, "\nEPA benchmark = 13.1 ug/L "))
+              title <- (paste0(B, " 2013\n", ii, "\nEPA benchmark = 13.1 ug/L "))
             }
           }
         }
@@ -474,7 +479,7 @@ for(B in unique(mydata_clean_noV$Basin)){
       a <- a + ggtitle(title) #write the title and subtitle
       a <- a + theme(legend.title=element_blank()) #remove title from legend
       a      
-      ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\2014\\", B, "_", ii, "_2014.jpg"), plot = a)
+      ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\2013\\", B, "_", ii, "_2013.jpg"), plot = a)
     }
   }
 }
@@ -495,17 +500,25 @@ for(B in unique(mydata_clean_noV$Basin)){
     a <- ggplot(data = subset.B, #data source is the subset of Basin and analyte
                 aes(x = date, #x axis dates
                     y = RESULT_clean.ug.l, #y axis is numeric result
-                    shape=Station_Description, #change point shapes by station
-                    color=Station_Description)) #change point colors by station
-    a <- a + geom_point(size = 4) #set the point size
-    a <- a + xlab("") + ylab(paste0("ug/L")) + ggtitle(paste0(B, " 2014")) #write the labels
+                    group = Station_Description))
+    #shape=Station_Description, #change point shapes by station
+    #color=Station_Description)) #change point colors by station
+    a <- a + geom_point(aes(shape=Station_Description, color=Station_Description), size = 2) #set the point size
+    a <- a + scale_shape_manual(values=pch.v)
+    a <- a + scale_colour_manual(values=col.v)
+    a <- a + xlab("") + ylab(paste0("ug/L")) + ggtitle(paste0(B, " 2013")) #write the labels
     a <- a + facet_wrap(~Analyte, drop=TRUE, scales = "free_y")
     a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
+    # Change font options:
+    # X-axis label: bold, red, and 20 points
+    # X-axis tick marks: rotate 90 degrees CCW, move to the left a bit (using vjust,
+    #   since the labels are rotated), and 16 points
+    a <- a + theme(axis.text.x  = element_text(angle=90, vjust=0.5, size=6))
+    a <- a + theme(legend.position="bottom")
     a
-    ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\2014\\", "multiplot_", B, "_2014.jpg"), plot = a)#, scale=2)
+    ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\2013\\", "multiplot_", B, "_2013.jpg"), plot = a, scale=2)
   }
 }
-
 
 ##################################################################################
 

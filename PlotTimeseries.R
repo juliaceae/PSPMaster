@@ -392,10 +392,57 @@ for(ii in analytes){
   }
 }
 
-#Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
-write.csv(Det.freq.table, paste(outpath.plot.points,"State_2013_detection_frequencies.csv",sep="")) 
+unique(mydata_clean_noV$Station_Description)
+Station_labels <- c("Lenz Creek at mouth",
+                    "Wagner Creek at Valley View Road (Talent)",
+                    "Mill Creek at Wright Road",
+                    "Hood River at footbridge downstream of I-84",
+                    "Willow Creek inflow",
+                    "Amazon Creek at Bond Road",
+                    "Rock Creek at Stony Brook Court",
+                    "Zollner Creek at Dominic Road",
+                    "Threemile Creek at Hwy 197",
+                    "West Fork Palmer at Webfoot Road Bridge",
+                    "West Fork Palmer Creek at SE Palmer Creek Road",
+                    "West Fork Palmer at SE Lafayette Hwy",
+                    "Amazon Creek at 29th Street Gaging Station",
+                    "Odell Creek upstream of Odell WWTP outfall",
+                    "Rogue River @ Hwy. 18/Salmon River Hwy",
+                    "Upper Neal Creek, downstream of EFIC",
+                    "Mud Springs Creek at Mouth",
+                    "Mill Creek at 2nd Street, The Dalles",
+                    "Neal Creek at mouth",
+                    "Amazon Creek at Beltline Road",
+                    "Walla Walla River at Pepper's Bridge",
+                    "Little Walla Walla River, west branch/Crocket",
+                    "Trout Creek US of Mud Springs Creek",
+                    "Amazon Creek at High Pass Road",
+                    "Gold Creek at Gold Creek RD",
+                    "Campbell Creek at Mouth",
+                    "West Prong Little Walla Walla River south of Stateline Road",
+                    "Coleman Creek at Greenway Bridge",
+                    "Agency CR at SW Grand Ronde RD",
+                    "A1 Channel at Awbrey Lane",
+                    "Pudding River at Hwy 99E (Aurora)",
+                    "Fifteenmile Creek Above Seufert Falls",
+                    "Little Walla Walla River Mid West Prong",
+                    "Griffin Creek at Greenway Bridge",
+                    "Little Walla Walla River at The Frog",
+                    "Middle Cozine at Old Sheridan Road",
+                    "Sieben Creek at Hwy 212",
+                    "Lower Cozine Creek at Davis Street Bridge",
+                    "Little Pudding River at Rambler Road",
+                    "Noyer Creek at Hwy 212",
+                    "North Fork Deep Creek at Hwy 212",
+                    "Jackson Creek at Dean Creek Bridge")
 
-write.csv(mydata_clean_noV, paste(outpath.plot.points,"State_2013_mydata_clean_noV.csv",sep="")) 
+mydata_clean_noV$Station_labels <- factor(mydata_clean_noV$Station_Description, levels=unique(mydata_clean_noV$Station_Description), labels=Station_labels)
+
+
+#Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
+write.csv(Det.freq.table, paste0(outpath.plot.points,"State_2013_detection_frequencies_2014_savedon:", Sys.Date(),".csv")) 
+
+write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_2013_mydata_clean_noV_2014_savedon:", Sys.Date(),".csv")) 
 
 
 
@@ -442,14 +489,15 @@ for(B in unique(mydata_clean_noV$Basin)){
       a <- ggplot(data = subset.ii, #data source is the subset of Basin and analyte
                   aes(x = date, #x axis is dates
                       y = RESULT_clean.ug.l, #y axis is numeric result
-                      shape=Station_Description, #change point shapes by station
-                      color=Station_Description)) #change point colors by station
+                      group=Station_labels,
+                      shape=Station_labels, #change point shapes by station
+                      color=Station_labels)) #change point colors by station
       a <- a + geom_point(size = 5) #set the point size
-      a <- a + xlab("") + ylab(paste0("ug/L")) #write the labels
+      a <- a + xlab("") + ylab(("ug/L")) #write the labels
       a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
-      a <- a + theme(panel.grid.minor.x = element_blank())
-      a <- a + theme_bw()
-      a <- a + coord_cartesian(xlim=c(min(subset.B$date)-1, max(subset.B$date)+1))
+      a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
+      a <- a + theme_bw() #blackandwhite theme
+      a <- a + coord_cartesian(xlim=c(min(subset.B$date)-1, max(subset.B$date)+1)) #add a day to beginning and end
       a <- a + ylim(c(0, max(subset.ii$RESULT_clean.ug.l*1.8))) #set the y range from zero to some multiplier of the max result to increase the head space
       #benchmarks lines and labels  
       if(length(numeric.criterion.graph)==0){  #if there is NO DEQ criteria or EPA benchmark
@@ -472,9 +520,16 @@ for(B in unique(mydata_clean_noV$Basin)){
         }
       }
       a <- a + ggtitle(title) #write the title and subtitle
+      a <- a + guides(shape = guide_legend(ncol = 2))
+      a <- a + theme(legend.position="bottom")
+      a <- a + theme(legend.direction="vertical")
+      a <- a + theme(legend.text=element_text(size=10))
       a <- a + theme(legend.title=element_blank()) #remove title from legend
       a      
-      ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\2014\\", B, "_", ii, "_2014.jpg"), plot = a)
+      a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown ", Sys.Date()), 
+                                           x = 0, hjust = -0.1, vjust=0.1,
+                                           gp = gpar(fontface = "italic", fontsize = 8))) 
+      ggsave(filename = paste0(outpath.plot.points, B, "_", ii, "_2014_savedon", Sys.Date(),".jpg"), plot = a)
     }
   }
 }
@@ -502,7 +557,7 @@ for(B in unique(mydata_clean_noV$Basin)){
     a <- a + facet_wrap(~Analyte, drop=TRUE, scales = "free_y")
     a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
     a
-    ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\2014\\", "multiplot_", B, "_2014.jpg"), plot = a)#, scale=2)
+    ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\2014\\", "multiplot_", B, "_2014_savedon:", Sys.Date(),".jpg"), plot = a)#, scale=2)
   }
 }
 

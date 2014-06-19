@@ -53,7 +53,8 @@ myQuery <- c()
 #qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Station_ID ='",station.list[i],"'  AND Client LIKE '%Pesticide%' AND Project LIKE '%Pudding%' AND (Work_Order LIKE '%130%' OR Work_Order LIKE '%131%') ")
 
 ## This line retreives all the pesticide samples received by the lab in 2014.  The query language is written in SQL.
-qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Client LIKE '%Pesticide%' AND (Work_Order LIKE '%140%' OR Work_Order LIKE '%141%') ")
+qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Client LIKE '%Pesticide%' AND 
+              (Work_Order LIKE '%140%' OR Work_Order LIKE '%141%') ")
 ## This line adds the query language to the empty query.
 myQuery <- append(myQuery, qry)
 #}
@@ -69,15 +70,19 @@ for(i in 1:length(myQuery)) {
 unique(mydata$Work_Order)
 unique(mydata$Project)
 
+oldpath <-"\\\\Deqhq1\\PSP\\Rscripts\\2014\\old\\20140612\\"
+oldfile <- "State_2014_mydata_clean_noV.csv"
+old.data <- read.csv(paste0(oldpath, oldfile), colClasses = "character")
+old.data.n  <- nrow(old.data)#$Station_Number)
+new.data.n <- nrow(mydata)
+if(new.data.n > old.data.n) print("NEW DATA! NEW DATA! NEW DATA! NEW DATA! NEW DATA AVAILABLE!")
+
 library(stringr)
-#inpath <-"\\\\Deqhq1\\PSP\\Pudding\\2013Pudding\\"
-#infile <- "Copy of Pudding FINAL Summer-Fall Spring2013.csv"
-#mydata.raw <- read.csv(paste(inpath, infile, sep = ""), colClasses = "character")
-#mydata <- mydata.raw
 Analyte <- mydata$OrigAnalyte
 Station_Description <- mydata$Station_Description
 Station_Number <- as.numeric(mydata$Station_ID)
-outpath.plot.points <- ("\\\\Deqhq1\\PSP\\Rscripts\\2014\\")
+new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\2014\\",Sys.Date(), sep="")) 
+outpath.plot.points <- paste("\\\\Deqhq1\\PSP\\Rscripts\\2014\\",Sys.Date(), "\\", sep="") 
 setwd(outpath.plot.points)
 log.scale <- ""
 Units <- mydata$Units
@@ -186,7 +191,7 @@ min.criteria <- data.frame(criteria$Pollutant, min.DEQ.criteria, min.EPA.criteri
 criteria.pollutant.list <- unique(min.criteria$criteria.Pollutant)
 Has.min.criteria <- analytes %in% criteria.pollutant.list #Caution!!"analytes" comes from the detections subset only - so NOT all the available criteria will be populated into later datasets!! It WILL skip mismatched (between LEAD analyte name and criteria name) nondetects!!
 check <- data.frame(Has.min.criteria, analytes)
-check  #no minimum criteria/benchmarks exist for Total Solids or DEET or Pronamide 
+check  #no minimum criteria/benchmarks exist for Total Solids or DEET or Pronamide or 2,6-BAM
 #end recursion
 min.criteria[criteria$Pollutant == 'aminomethyl phosphoric acid (AMPA) Glyphosate degradate','criteria.Pollutant'] <- "Aminomethylphosphonic acid (AMPA)" #example for substitutions (first is old name in criteria list, second is new analyte name)
 min.criteria[criteria$Pollutant == '2,6-Dichlorobenzamide (BAM)','criteria.Pollutant'] <- "2,6-Dichlorobenzamide" #example for substitutions (first is old name in criteria list, second is new analyte name)
@@ -195,11 +200,10 @@ min.criteria[criteria$Pollutant == '4,4`-DDE','criteria.Pollutant'] <- "4,4´-DD
 #change min.criteria table - replace criteria value for 2,4-D with 2,4-D acids and salts
 aaa <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == "2,4-D acids and salts",'criteria.minimum.criteria.benchmark.value'])#benchmark for 2,4-D acids and salts
 min.criteria[criteria$Pollutant == '2,4-D','criteria.minimum.criteria.benchmark.value'] <- aaa 
-#delete repeated imidacloprid
-min.criteria <- min.criteria[-(382), ]
+min.criteria <- min.criteria[-(382), ] #delete repeated imidacloprid
 
 ######################################
-#min.criteria0 <- min.criteria
+min.criteria0 <- min.criteria
 min.criteria <- subset(min.criteria0, (min.criteria0$criteria.minimum.criteria.benchmark.value) != "")
 for(i in 1:nrow(min.criteria)){
   if(min.criteria$criteria.Pollutant[i] == "Chlorpyrifos"){  #Chlorpyrifos is only standard where we draw both lines
@@ -261,8 +265,8 @@ for(i in 1:nrow(mydata_clean_noV)){
   ddd <- match(ccc, min.criteria$criteria.Pollutant)
   mydata_clean_noV$benchmark.DEQ[i] <- as.numeric(min.criteria$min.DEQ.criteria[ddd])   #make a column of appropriate benchmark
   mydata_clean_noV$benchmark.EPA[i] <- as.numeric(min.criteria$min.EPA.criteria[ddd])   #make a column of appropriate benchmark  
-  mydata_clean_noV$benchmark[i] <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[ddd])   #make a column of appropriate benchmark
-  mydata_clean_noV$final_digress[i] <- ifelse(mydata_clean_noV$RESULT_clean.ug.l[i] > mydata_clean_noV$benchmark[i], 1,0) #make column with digression stations (T/F)
+  mydata_clean_noV$relevant.AL.benchmark[i] <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[ddd])   #make a column of appropriate benchmark
+  mydata_clean_noV$final_digress[i] <- ifelse(mydata_clean_noV$RESULT_clean.ug.l[i] > mydata_clean_noV$relevant.AL.benchmark[i], 1,0) #make column with digression stations (T/F)
 }
 digressions <- (mydata_clean_noV[is.na(mydata_clean_noV$final_digress) == FALSE & mydata_clean_noV$final_digress == 1,])
 index <-  (order(digressions$Basin))
@@ -270,11 +274,11 @@ digressions <- digressions[(index),]
 digressions
 
 #### Determine percent digression of criteria
-mydata_clean_noV$percent.benchmark <- mydata_clean_noV$RESULT_clean.ug.l/mydata_clean_noV$benchmark
+mydata_clean_noV$percent.benchmark <- mydata_clean_noV$RESULT_clean.ug.l/mydata_clean_noV$relevant.AL.benchmark
 mydata_clean_noV$exceed.type <- NA
 
 for(i in 1:nrow(mydata_clean_noV)){
-  if(is.na(mydata_clean_noV$RESULT_clean[i]) == FALSE & is.na(mydata_clean_noV$benchmark[i]) == TRUE){ #result is a detection AND benchmark does NOT exist
+  if(is.na(mydata_clean_noV$RESULT_clean[i]) == FALSE & is.na(mydata_clean_noV$relevant.AL.benchmark[i]) == TRUE){ #result is a detection AND benchmark does NOT exist
     mydata_clean_noV$exceed.type[i] <- "no benchmark available"
   }else{
     if(is.na(mydata_clean_noV$percent.benchmark[i])==FALSE){ #percent.benchmark is a real number
@@ -393,9 +397,57 @@ for(ii in analytes){
 }
 
 #Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
-write.csv(Det.freq.table, paste(outpath.plot.points,"State_2013_detection_frequencies.csv",sep="")) 
 
-write.csv(mydata_clean_noV, paste(outpath.plot.points,"State_2013_mydata_clean_noV.csv",sep="")) 
+unique(mydata_clean_noV$Station_Description)
+Station_labels <- c("Lenz Creek at mouth",
+                    "Wagner Creek at Valley View Road (Talent)",
+                    "Mill Creek at Wright Road",
+                    "Hood River at footbridge downstream of I-84",
+                    "Willow Creek inflow",
+                    "Amazon Creek at Bond Road",
+                    "Rock Creek at Stony Brook Court",
+                    "Zollner Creek at Dominic Road",
+                    "Threemile Creek at Hwy 197",
+                    "West Fork Palmer at Webfoot Road Bridge",
+                    "West Fork Palmer Creek at SE Palmer Creek Road",
+                    "West Fork Palmer at SE Lafayette Hwy",
+                    "Amazon Creek at 29th Street Gaging Station",
+                    "Odell Creek upstream of Odell WWTP outfall",
+                    "Rogue River @ Hwy. 18/Salmon River Hwy",
+                    "Upper Neal Creek, downstream of EFIC",
+                    "Mud Springs Creek at Mouth",
+                    "Mill Creek at 2nd Street, The Dalles",
+                    "Neal Creek at mouth",
+                    "Amazon Creek at Beltline Road",
+                    "Walla Walla River at Pepper's Bridge",
+                    "Little Walla Walla River, west branch/Crocket",
+                    "Trout Creek US of Mud Springs Creek",
+                    "Amazon Creek at High Pass Road",
+                    "Gold Creek at Gold Creek RD",
+                    "Campbell Creek at Mouth",
+                    "West Prong Little Walla Walla River south of Stateline Road",
+                    "Coleman Creek at Greenway Bridge",
+                    "Agency CR at SW Grand Ronde RD",
+                    "A1 Channel at Awbrey Lane",
+                    "Pudding River at Hwy 99E (Aurora)",
+                    "Fifteenmile Creek Above Seufert Falls",
+                    "Little Walla Walla River Mid West Prong",
+                    "Griffin Creek at Greenway Bridge",
+                    "Little Walla Walla River at The Frog",
+                    "Middle Cozine at Old Sheridan Road",
+                    "Sieben Creek at Hwy 212",
+                    "Lower Cozine Creek at Davis Street Bridge",
+                    "Little Pudding River at Rambler Road",
+                    "Noyer Creek at Hwy 212",
+                    "North Fork Deep Creek at Hwy 212",
+                    "Jackson Creek at Dean Creek Bridge")
+
+mydata_clean_noV$Station_labels <- factor(mydata_clean_noV$Station_Description, levels=unique(mydata_clean_noV$Station_Description), labels=Station_labels)
+
+
+write.csv(Det.freq.table, paste0(outpath.plot.points,"State_2014_detection_frequencies_savedon", Sys.Date(),".csv")) 
+
+write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_2014_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
 
 
 
@@ -430,11 +482,16 @@ B <- "Yamhill"
 ii <- "Bifenthrin"
 ii <- "Conductivity"
 
+###########################
+#outpath.plot.points <- ("\\\\Deqhq1\\PSP\\Rscripts\\2014\\")
+###########################
+
 for(B in unique(mydata_clean_noV$Basin)){
   subset.B <- subset(mydata_clean_noV, Basin == B)
   for(ii in analytes){
     subset.ii <- subset(subset.B, Analyte == ii)
     subset.ii <- subset(subset.ii, is.na(subset.ii$RESULT_clean.ug.l) == FALSE)
+    #if(all(is.na(subset.ii$RESULT_clean.ug.l)==FALSE)){
     print(paste0(ii, ": n=", length(subset.ii$RESULT)))
     if(length(subset.ii$RESULT) > 0 & is.na(sum(subset.ii$RESULT_clean.ug.l))==FALSE){
       numeric.criterion.graph <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == ii,'criteria.minimum.criteria.benchmark.value']) #find the lowest EPA AL benchmark
@@ -442,14 +499,15 @@ for(B in unique(mydata_clean_noV$Basin)){
       a <- ggplot(data = subset.ii, #data source is the subset of Basin and analyte
                   aes(x = date, #x axis is dates
                       y = RESULT_clean.ug.l, #y axis is numeric result
-                      shape=Station_Description, #change point shapes by station
-                      color=Station_Description)) #change point colors by station
+                      group=Station_labels,
+                      shape=Station_labels, #change point shapes by station
+                      color=Station_labels)) #change point colors by station
       a <- a + geom_point(size = 5) #set the point size
-      a <- a + xlab("") + ylab(paste0("ug/L")) #write the labels
+      a <- a + xlab("") + ylab(("ug/L")) #write the labels
       a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
-      a <- a + theme(panel.grid.minor.x = element_blank())
-      a <- a + theme_bw()
-      a <- a + coord_cartesian(xlim=c(min(subset.B$date)-1, max(subset.B$date)+1))
+      a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
+      a <- a + theme_bw() #blackandwhite theme
+      a <- a + coord_cartesian(xlim=c(min(subset.B$date)-1, max(subset.B$date)+1)) #add a day to beginning and end
       a <- a + ylim(c(0, max(subset.ii$RESULT_clean.ug.l*1.8))) #set the y range from zero to some multiplier of the max result to increase the head space
       #benchmarks lines and labels  
       if(length(numeric.criterion.graph)==0){  #if there is NO DEQ criteria or EPA benchmark
@@ -472,13 +530,20 @@ for(B in unique(mydata_clean_noV$Basin)){
         }
       }
       a <- a + ggtitle(title) #write the title and subtitle
+      a <- a + guides(shape = guide_legend(ncol = 2))
+      a <- a + theme(legend.position="bottom")
+      a <- a + theme(legend.direction="vertical")
+      a <- a + theme(legend.text=element_text(size=10))
       a <- a + theme(legend.title=element_blank()) #remove title from legend
       a      
-      ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\2014\\", B, "_", ii, "_2014.jpg"), plot = a)
+      a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown ", Sys.Date()), 
+                                           x = 0, hjust = -0.1, vjust=0.1,
+                                           gp = gpar(fontface = "italic", fontsize = 8))) 
+      ggsave(filename = paste0(outpath.plot.points, B, "_", ii, "_2014_savedon", Sys.Date(),".jpg"), plot = a)
+    #}
     }
   }
 }
-
 
 #################################################################################
 #ggplot 
@@ -495,14 +560,22 @@ for(B in unique(mydata_clean_noV$Basin)){
     a <- ggplot(data = subset.B, #data source is the subset of Basin and analyte
                 aes(x = date, #x axis dates
                     y = RESULT_clean.ug.l, #y axis is numeric result
-                    shape=Station_Description, #change point shapes by station
-                    color=Station_Description)) #change point colors by station
+                    shape=Station_labels, #change point shapes by station
+                    color=Station_labels)) #change point colors by station
     a <- a + geom_point(size = 4) #set the point size
     a <- a + xlab("") + ylab(paste0("ug/L")) + ggtitle(paste0(B, " 2014")) #write the labels
     a <- a + facet_wrap(~Analyte, drop=TRUE, scales = "free_y")
     a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
+    a <- a + theme(axis.text.x  = element_text(angle=90, vjust=0.5, color="black", size=10))
+    a <- a + theme(axis.text.y  = element_text(color="black", size=10))
+    a <- a + guides(shape = guide_legend(ncol = 2)) #legend in two columns
+    a <- a + theme(legend.position="bottom", legend.direction="vertical", legend.text=element_text(size=10), #move legend
+                   legend.title=element_blank()) #remove title from legend
     a
-    ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\2014\\", "multiplot_", B, "_2014.jpg"), plot = a)#, scale=2)
+    a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown ", Sys.Date()), 
+                                         x = 0, hjust = -0.1, vjust=0.1,
+                                         gp = gpar(fontface = "italic", fontsize = 8))) 
+    ggsave(filename = paste0(outpath.plot.points, "multiplot_", B, "_2014_savedon", Sys.Date(),".jpg"), plot = a, scale=1.5)
   }
 }
 

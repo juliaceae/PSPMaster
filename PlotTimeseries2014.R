@@ -35,9 +35,6 @@ TableNames<- sqlTables(channel,errors = FALSE)
 ## test example query
 tmp.test <- sqlFetch(channel, "dbo.Repo_Result", stringsAsFactors=FALSE, max=20)
 
-#Pudding PSP stations 2013 
-#station.list <- c(10000, 11516, 31875, 10646, 10917)
-
 #Build the query for 2014 PSP Work Orders (A note about "Work_Order": When samples are delivered to the lab, 
 # they are logged by assigned a Work Order number.  
 # The first two digits of the Work Orders number refer to the last two digits of the year that the samples were received, 
@@ -313,143 +310,164 @@ detections <- subset(mydata_clean_noV, is.na(RESULT_clean) == FALSE) #subset out
 index <-  (order(detections$Basin))
 detections <- detections[(index),]
 
-# ####Output a summary table 
-# Det.freq.table <- data.frame("Station"=NA, "Station.Description"=NA, "Parameter"=NA,"Average"=NA, "Max"=NA, "criteria"=NA, "ALR"=NA, "N Samples" = NA, "percent.det.freq"=NA, "exceed.type"=NA, stringsAsFactors=FALSE)
-# 
-# ####Four
-# for(ii in analytes){
-#   subset.points0 <- subset(mydata_clean_noV, Analyte == ii)#aaa
-#   tot.n <- nrow(subset.points0)#bbb
-#   for(i in station.list){
-#     subset.points <- subset(subset.points0, Station_Number == i)#ccc
-#     if(length(subset.points$RESULT_clean)>0){
-#       
-#       detects.n <- nrow(subset(subset.points, is.na(RESULT_clean) == FALSE))
-#       type.n <- nrow(subset.points)#ddd
-#       percent.det.freq <- (detects.n/type.n)*100
-#       
-#       Station <- min(subset.points$Station_Number)
-#       Station.Description <- min(subset.points$Station_Description)
-#       Analyte <- min(subset.points$Analyte)
-#       Average <- mean(subset.points$RESULT_clean.ug.l.subND)
-#       Max <- max(subset.points$RESULT_clean.ug.l.subND)
-#       matchup <- match(Analyte, min.criteria$criteria.Pollutant)
-#       criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
-#       ALR <- Max/criteria
-#       
-#       df1 <- data.frame("Station"=Station, "Station.Description"=Station.Description, "Parameter"=Analyte,"Average"=Average, "Max"=Max, "criteria"=criteria, "ALR"="Not Calculated", "N Samples" = type.n, "percent.det.freq"=percent.det.freq, "exceed.type"="Not Calculated", stringsAsFactors=FALSE)
-#       Det.freq.table <- rbind(df1, Det.freq.table)
-#     }
-#   }
-# }
-# 
-# ####Two and Three
-# #Aggregate Basin wide statistics
-# ii <- "Hexazinone"
-# for(ii in analytes){
-#   subset.points <- subset(mydata_clean_noV, Analyte == ii)
-#   if(length(subset.points$RESULT_clean)>0){
-#     
-#     tot.n <- nrow(subset.points)
-#     detects <- subset(subset.points, is.na(exceed.type) == FALSE)
-#     det.n <- nrow(detects)
-#     percent.det.freq <- (det.n/tot.n)*100
-#     
-#     Station <- "Basin aggregate"
-#     Station.Description <- "Basin aggregate"
-#     Analyte <- min(subset.points$Analyte)
-#     Average <- mean(subset.points$RESULT_clean.ug.l.subND)
-#     Max <- max(subset.points$RESULT_clean.ug.l.subND)
-#     matchup <- match(Analyte, min.criteria$criteria.Pollutant)
-#     criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
-#     ALR <- Max/criteria
-#     
-#     df1 <- data.frame("Station"=Station, "Station.Description"=Station.Description, "Parameter"=Analyte,"Average"=Average, "Max"=Max, "criteria"=criteria, "ALR"=ALR, "N Samples" = tot.n, "percent.det.freq"=percent.det.freq, "exceed.type"="Total Detection Freq", stringsAsFactors=FALSE)
-#     Det.freq.table <- rbind(df1, Det.freq.table)
-#   }
-# }
-# 
-# ####One
-# for(ii in analytes){
-#   subset.points0 <- subset(mydata_clean_noV, Analyte == ii)#aaa
-#   n.tot <- nrow(subset.points0)#bbb
-#   for(iii in unique(mydata_clean_noV$exceed.type)){
-#     subset.points <- subset(subset.points0, exceed.type == iii)#ccc
-#     if(length(subset.points$RESULT_clean)>0){
-#       
-#       n.exceed.type <- nrow(subset.points)#ddd
-#       percent.det.freq <- (n.exceed.type/n.tot)*100
-#       
-#       Basin <- min(subset.points$Basin)
-#       Station <- min(subset.points$Station_Number)
-#       Station.Description <- min(subset.points$Station_Description)
-#       Analyte <- min(subset.points$Analyte)
-#       Average <- mean(subset.points$RESULT_clean.ug.l.subND)
-#       Max <- max(subset.points$RESULT_clean.ug.l.subND)
-#       matchup <- match(Analyte, min.criteria$criteria.Pollutant)
-#       criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
-#       ALR <- Max/criteria
-#       
-#       df1 <- data.frame("Station"=Basin, "Station.Description"=Basin, "Parameter"=Analyte,"Average"=Average, "Max"=Max, "criteria"=criteria, "ALR"="Not Calculated", "N Samples" = n.exceed.type, "percent.det.freq"=percent.det.freq, "exceed.type"=iii, stringsAsFactors=FALSE)
-#       Det.freq.table <- rbind(df1, Det.freq.table)
-#     }
-#   }
-# }
-# 
-# #Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
-# 
-# unique(mydata_clean_noV$Station_Description)
-# Station_labels <- c("Lenz Creek at mouth",
-#                     "Wagner Creek at Valley View Road (Talent)",
-#                     "Mill Creek at Wright Road",
-#                     "Hood River at footbridge downstream of I-84",
-#                     "Willow Creek inflow",
-#                     "Amazon Creek at Bond Road",
-#                     "Rock Creek at Stony Brook Court",
-#                     "Zollner Creek at Dominic Road",
-#                     "Threemile Creek at Hwy 197",
-#                     "West Fork Palmer at Webfoot Road Bridge",
-#                     "West Fork Palmer Creek at SE Palmer Creek Road",
-#                     "West Fork Palmer at SE Lafayette Hwy",
-#                     "Amazon Creek at 29th Street Gaging Station",
-#                     "Odell Creek upstream of Odell WWTP outfall",
-#                     "Rogue River @ Hwy. 18/Salmon River Hwy",
-#                     "Upper Neal Creek, downstream of EFIC",
-#                     "Mud Springs Creek at Mouth",
-#                     "Mill Creek at 2nd Street, The Dalles",
-#                     "Neal Creek at mouth",
-#                     "Amazon Creek at Beltline Road",
-#                     "Walla Walla River at Pepper's Bridge",
-#                     "Little Walla Walla River, west branch/Crocket",
-#                     "Trout Creek US of Mud Springs Creek",
-#                     "Amazon Creek at High Pass Road",
-#                     "Gold Creek at Gold Creek RD",
-#                     "Campbell Creek at Mouth",
-#                     "West Prong Little Walla Walla River south of Stateline Road",
-#                     "Coleman Creek at Greenway Bridge",
-#                     "Agency CR at SW Grand Ronde RD",
-#                     "A1 Channel at Awbrey Lane",
-#                     "Pudding River at Hwy 99E (Aurora)",
-#                     "Fifteenmile Creek Above Seufert Falls",
-#                     "Little Walla Walla River Mid West Prong",
-#                     "Griffin Creek at Greenway Bridge",
-#                     "Little Walla Walla River at The Frog",
-#                     "Middle Cozine at Old Sheridan Road",
-#                     "Sieben Creek at Hwy 212",
-#                     "Lower Cozine Creek at Davis Street Bridge",
-#                     "Little Pudding River at Rambler Road",
-#                     "Noyer Creek at Hwy 212",
-#                     "North Fork Deep Creek at Hwy 212",
-#                     "Jackson Creek at Dean Creek Bridge")
-# 
-# mydata_clean_noV$Station_labels <- factor(mydata_clean_noV$Station_Description, levels=unique(mydata_clean_noV$Station_Description), labels=Station_labels)
-# 
-# 
-# write.csv(Det.freq.table, paste0(outpath.plot.points,"State_2014_detection_frequencies_savedon", Sys.Date(),".csv")) 
-# 
-# write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_2014_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
-# 
+####Output a summary table 
+Det.freq.table <- data.frame("Station"=NA, "Station.Description"=NA, "Parameter"=NA,"Average"=NA, "Max"=NA, "criteria"=NA, "ALR"=NA, "N Samples" = NA, "percent.det.freq"=NA, "exceed.type"=NA, stringsAsFactors=FALSE)
 
+####Four
+for(ii in analytes){
+  subset.points0 <- subset(mydata_clean_noV, Analyte == ii)#aaa
+  tot.n <- nrow(subset.points0)#bbb
+  for(i in station.list){
+    subset.points <- subset(subset.points0, Station_Number == i)#ccc
+    if(length(subset.points$RESULT_clean)>0){
+      
+      detects.n <- nrow(subset(subset.points, is.na(RESULT_clean) == FALSE))
+      type.n <- nrow(subset.points)#ddd
+      percent.det.freq <- (detects.n/type.n)*100
+      
+      Station <- min(subset.points$Station_Number)
+      Station.Description <- min(subset.points$Station_Description)
+      Analyte <- min(subset.points$Analyte)
+      Average <- mean(subset.points$RESULT_clean.ug.l.subND)
+      Max <- max(subset.points$RESULT_clean.ug.l.subND)
+      matchup <- match(Analyte, min.criteria$criteria.Pollutant)
+      criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
+      ALR <- Max/criteria
+      
+      df1 <- data.frame("Station"=Station, "Station.Description"=Station.Description, "Parameter"=Analyte,"Average"=Average, "Max"=Max, "criteria"=criteria, "ALR"="Not Calculated", "N Samples" = type.n, "percent.det.freq"=percent.det.freq, "exceed.type"="Not Calculated", stringsAsFactors=FALSE)
+      Det.freq.table <- rbind(df1, Det.freq.table)
+    }
+  }
+}
+
+####Two and Three
+#Aggregate Basin wide statistics
+ii <- "Hexazinone"
+for(ii in analytes){
+  subset.points <- subset(mydata_clean_noV, Analyte == ii)
+  if(length(subset.points$RESULT_clean)>0){
+    
+    tot.n <- nrow(subset.points)
+    detects <- subset(subset.points, is.na(exceed.type) == FALSE)
+    det.n <- nrow(detects)
+    percent.det.freq <- (det.n/tot.n)*100
+    
+    Station <- "Basin aggregate"
+    Station.Description <- "Basin aggregate"
+    Analyte <- min(subset.points$Analyte)
+    Average <- mean(subset.points$RESULT_clean.ug.l.subND)
+    Max <- max(subset.points$RESULT_clean.ug.l.subND)
+    matchup <- match(Analyte, min.criteria$criteria.Pollutant)
+    criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
+    ALR <- Max/criteria
+    
+    df1 <- data.frame("Station"=Station, 
+                      "Station.Description"=Station.Description, 
+                      "Parameter"=Analyte,
+                      "Average"=Average, 
+                      "Max"=Max, 
+                      "criteria"=criteria, 
+                      "ALR"=ALR, 
+                      "N Samples" = tot.n, 
+                      "percent.det.freq"=percent.det.freq, 
+                      "exceed.type"="Total Detection Freq", 
+                      stringsAsFactors=FALSE)
+    Det.freq.table <- rbind(df1, Det.freq.table)
+  }
+}
+
+####One
+for(ii in analytes){
+  subset.points0 <- subset(mydata_clean_noV, Analyte == ii)#aaa
+  n.tot <- nrow(subset.points0)#bbb
+  for(iii in unique(mydata_clean_noV$exceed.type)){
+    subset.points <- subset(subset.points0, exceed.type == iii)#ccc
+    if(length(subset.points$RESULT_clean)>0){
+      
+      n.exceed.type <- nrow(subset.points)#ddd
+      percent.det.freq <- (n.exceed.type/n.tot)*100
+      
+      Basin <- min(subset.points$Basin)
+      Station <- min(subset.points$Station_Number)
+      Station.Description <- min(subset.points$Station_Description)
+      Analyte <- min(subset.points$Analyte)
+      Average <- mean(subset.points$RESULT_clean.ug.l.subND)
+      Max <- max(subset.points$RESULT_clean.ug.l.subND)
+      matchup <- match(Analyte, min.criteria$criteria.Pollutant)
+      criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
+      ALR <- Max/criteria
+      
+      df1 <- data.frame("Station"=Basin, "Station.Description"=Basin, "Parameter"=Analyte,"Average"=Average, "Max"=Max, "criteria"=criteria, "ALR"="Not Calculated", "N Samples" = n.exceed.type, "percent.det.freq"=percent.det.freq, "exceed.type"=iii, stringsAsFactors=FALSE)
+      Det.freq.table <- rbind(df1, Det.freq.table)
+    }
+  }
+}
+
+Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
+
+write.csv(Det.freq.table, paste0(outpath.plot.points,"State_2014_detection_frequencies_savedon", Sys.Date(),".csv")) 
+
+write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_2014_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+
+####Output the ALR table 
+ALR.table <- data.frame("Basin"=NA, 
+                        "Station"=NA, 
+                        "Station.Description"=NA, 
+                        "Parameter"=NA,
+                        "Average"=NA, 
+                        "Max"=NA, 
+                        "Median"=NA,
+                        "criteria"=NA, 
+                        "ALR"=NA, 
+                        "N detects"=NA, 
+                        "N Samples" = NA, 
+                        "percent.det.freq"=NA, 
+                        "exceed.type"=NA, 
+                        stringsAsFactors=FALSE)
+
+for (B in unique(mydata_clean_noV$Basin)) {
+  subset.B <- subset(mydata_clean_noV, Basin == B)
+  for (ii in analytes){
+    subset.points <- subset(subset.B, Analyte == ii)
+    if(length(subset.points$RESULT > 0) & any(subset.points$RESULT_clean.ug.l.neg > 0)){ #if there is a result and there is detection
+      
+      tot.n <- nrow(subset.points)
+      detects <- subset(subset.points, is.na(exceed.type) == FALSE)
+      det.n <- nrow(detects)
+      percent.det.freq <- (det.n/tot.n)*100
+      
+      Station <- "Basin aggregate"
+      Station.Description <- "Basin aggregate"
+      Basin <- min(subset.points$Basin)
+      Analyte <- min(subset.points$Analyte)
+      Average <- mean(subset.points$RESULT_clean.ug.l.subND)
+      Median <- median(subset.points$RESULT_clean.ug.l.subND)
+      Max <- max(subset.points$RESULT_clean.ug.l.subND)
+      matchup <- match(Analyte, min.criteria$criteria.Pollutant)
+      criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
+      ALR <- Max/criteria
+      
+      ALR1 <- data.frame("Basin"=Basin, 
+                         "Station"=Station, 
+                         "Station.Description"=Station.Description, 
+                         "Parameter"=Analyte,
+                         "Average"=Average, 
+                         "Max"=Max, 
+                         "Median"=Median,
+                         "criteria"=criteria, 
+                         "ALR"=ALR, 
+                         "N detects"=det.n, 
+                         "N Samples" = tot.n, 
+                         "percent.det.freq"=percent.det.freq, 
+                         "exceed.type"="Basin Detection Freq", 
+                         stringsAsFactors=FALSE)
+      ALR.table <- rbind(ALR1, ALR.table)
+      ALR.table <- ALR.table[-nrow(ALR.table),]
+      
+    }
+  }
+}
+##################################
 
 
 
@@ -598,10 +616,59 @@ for(B in unique(mydata_clean_noV$Basin)){
 ####For each station, graph all analytes
 #detections0 <- subset(detections, Station_Number == 36179)
 
-herbicides <- c("Atrazine", "Desethylatrazine", "Deisopropylatrazine", "Sulfometuron-methyl", "Pendimethalin", "Diuron", "Simazine", "Metolachlor", "Dichlobenil", "2,6-Dichlorobenzamide", "2,4-D", "Imazapyr", "Hexazinone", "Metribuzin", "Dicamba", "Dimethenamid", "Fluridone", "Trifluralin", "Chlorpropham", "Prometon", "Bromacil", "Triclopyr", "Acetochlor", "Oxyfluorfen", "Napropamide", "Pronamide", "Norflurazon", "Terbacil", "EPTC")
+herbicides <- c("2,4-D",
+                "2,6-Dichlorobenzamide",
+                "Acetochlor",
+                "Aminomethylphosphonic acid (AMPA)",
+                "Atrazine",
+                "Bromacil",
+                "Chlorpropham",
+                "Cycloate",
+                "Deisopropylatrazine",
+                "Desethylatrazine",
+                "Dicamba",
+                "Dichlobenil",
+                "Dimethenamid",
+                "Diuron",
+                "EPTC",
+                "Fluridone",
+                "Glyphosate",
+                "Hexazinone",
+                "Imazapyr",
+                "Linuron",
+                "Metolachlor",
+                "Metribuzin",
+                "Napropamide",
+                "Norflurazon",
+                "Oxyfluorfen",
+                "Pendimethalin",
+                "Prometon",
+                "Pronamide",
+                "Propazine",
+                "Simazine",
+                "Sulfometuron-methyl",
+                "Tebuthiuron",
+                "Terbacil",
+                "Triclopyr",
+                "Trifluralin")
 
 
-insecticides <- c( "Carbaryl", "Imidacloprid", "Carbofuran", "Chlorpyrifos", "Ethoprop", "Methomyl", "Oxamyl", "Acetamiprid", "Dimethoate", "Diazinon", "Methiocarb", "4,4´-DDD", "4,4´-DDE")
+insecticides <- c( "4,4´-DDD",
+                   "4,4´-DDE",
+                   "Acetamiprid",
+                   "Bifenthrin",
+                   "Carbaryl",
+                   "Carbofuran",
+                   "Chlorpyrifos",
+                   "Diazinon",
+                   "Dimethoate",
+                   "Ethoprop",
+                   "Imidacloprid",
+                   "Malathion",
+                   "Methiocarb",
+                   "Methomyl",
+                   "Oxamyl",
+                   "Prometon")
 
 
 fungicides <- c("Propiconazole", "Pyraclostrobin")

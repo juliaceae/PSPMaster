@@ -3,6 +3,13 @@
 #authorship
 ####
 
+####Run "P:\Rscripts\Criteria\ToxicsCriteriaPSP.R" first.
+#load("P:\\Rscripts\\Criteria\\2014-12-08\\min.Aquatic.Life.criteria.values_savedon2014-12-08.Rdata")
+outpath.criteria <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), "\\", sep="") 
+load(paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".Rdata"))
+
+require(plyr)
+
 ####This function is two years old and based in Dan's python world.  Simplify me!
 get.cases <- function(chk.values) {
   ## Checks for non-numeric values in the vector "chk.values", which should
@@ -67,7 +74,7 @@ for(i in 1:length(myQuery)) {
 
 unique(mydata$Work_Order)
 unique(mydata$Project)
-nd <- subset(mydata, Result == "Cancelled")
+cd <- subset(mydata, Result == "Cancelled")
 vd <- subset(mydata, Result == "Void")
 
 
@@ -180,34 +187,42 @@ analytes
 sort(unique(mydata_clean$date))
 
 ####Establish Benchmarks and Exceedances
+####Currently doing this step in "ToxicsCriteriaPSP.R"  
 
 #### pre-processing minimum criteria with Excel for now:----
-criteria.file <- "Pesticide Benchmarks and Criteria_Feb 04 2014.csv"
-criteria <- read.csv(file=paste0("\\\\Deqhq1\\PSP\\Rscripts\\Wasco\\Wasco2013\\", criteria.file), row.names=1, colClasses = "character")
+#criteria.file <- "Pesticide Benchmarks and Criteria_Feb 04 2014.csv"
+#criteria <- read.csv(file=paste0("\\\\Deqhq1\\PSP\\Rscripts\\Wasco\\Wasco2013\\", criteria.file), row.names=1, colClasses = "character")
 
-min.DEQ.criteria <- as.numeric(criteria$min.AL.DEQ.WQS)
-min.EPA.criteria <- as.numeric(criteria$min.AL.EPA.benchmark)
-min.criteria <- data.frame(criteria$Pollutant, min.DEQ.criteria, min.EPA.criteria, criteria$minimum.criteria.benchmark.value, stringsAsFactors = FALSE)
+#min.DEQ.criteria <- as.numeric(criteria$min.AL.DEQ.WQS)
+#min.EPA.criteria <- as.numeric(criteria$min.AL.EPA.benchmark)
+#min.criteria <- data.frame(criteria$Pollutant, min.DEQ.criteria, min.EPA.criteria, criteria$minimum.criteria.benchmark.value, stringsAsFactors = FALSE)
 
 #Acifluorfen Sodium update made after deleting Sodium acifluorfen (EPA 11/24/14-ish -see email chain). 
 #This update being made because the > sign isn't recognized in Excel... need to convert choosing the criteria to R scripts (JC 11/24/14).
-min.criteria[min.criteria$criteria.Pollutant == "Acifluorfen (Sodium)", "criteria.minimum.criteria.benchmark.value"] <- "265"
-min.criteria[min.criteria$criteria.Pollutant == "Acifluorfen (Sodium)", "min.EPA.criteria"] <- "265"
+#min.criteria[min.criteria$criteria.Pollutant == "Acifluorfen (Sodium)", "criteria.minimum.criteria.benchmark.value"] <- "265"
+#min.criteria[min.criteria$criteria.Pollutant == "Acifluorfen (Sodium)", "min.EPA.criteria"] <- "265"
 
 #The Table 30 numerical updates (adopted by DEQ 4/18/14) (Table 40 did not have any numerical updates) are made here:
-min.criteria[min.criteria$criteria.Pollutant == "Heptachlor Epoxide", "min.DEQ.criteria"] <- "0.0038"
-min.criteria[min.criteria$criteria.Pollutant == "Endosulfan I", "min.DEQ.criteria"] <- "0.056"
-min.criteria[min.criteria$criteria.Pollutant == "Endosulfan II", "min.DEQ.criteria"] <- "0.056"
-
-min.criteria[min.criteria$criteria.Pollutant == "Heptachlor Epoxide", "criteria.minimum.criteria.benchmark.value"] <- "0.0038"
-min.criteria[min.criteria$criteria.Pollutant == "Endosulfan I", "criteria.minimum.criteria.benchmark.value"] <- "0.056"
-min.criteria[min.criteria$criteria.Pollutant == "Endosulfan II", "criteria.minimum.criteria.benchmark.value"] <- "0.056"
+#min.criteria[min.criteria$criteria.Pollutant == "Heptachlor Epoxide", "min.DEQ.criteria"] <- "0.0038"
+# min.criteria[min.criteria$criteria.Pollutant == "Endosulfan I", "min.DEQ.criteria"] <- "0.056"
+# min.criteria[min.criteria$criteria.Pollutant == "Endosulfan II", "min.DEQ.criteria"] <- "0.056"
+# 
+# min.criteria[min.criteria$criteria.Pollutant == "Heptachlor Epoxide", "criteria.minimum.criteria.benchmark.value"] <- "0.0038"
+# min.criteria[min.criteria$criteria.Pollutant == "Endosulfan I", "criteria.minimum.criteria.benchmark.value"] <- "0.056"
+# min.criteria[min.criteria$criteria.Pollutant == "Endosulfan II", "criteria.minimum.criteria.benchmark.value"] <- "0.056"
 
 #EPA's OPP benchmarks update as of 5/14/13
 #Not using new atrazine/simazine/desethylatrazine/deisopropylatrazine until we discuss at WQPMT on 12/16/14
-#min.criteria[min.criteria$criteria.Pollutant == "Atrazine", "min.DEQ.criteria"] <- "0.001"
+#min.criteria[min.criteria$criteria.Pollutant == "Atrazine", "min.EPA.criteria"] <- "0.001"
 #min.criteria[min.criteria$criteria.Pollutant == "Atrazine", "criteria.minimum.criteria.benchmark.value"] <- "0.001"
 
+######################################
+min.criteria <- min.AQL.1
+min.criteria <- rename(min.criteria , replace = c('Pollutant' = 'criteria.Pollutant',
+                                                  'min.state.AQL' = 'min.DEQ.criteria', 
+                                                  'min.other.AQL' = 'min.EPA.criteria', 
+                                                  'min.AQL.0' = 'criteria.minimum.criteria.benchmark.value'))
+######################################
 #matching the analytes name with the min.criteria name----
 #recursive until Has.min.criteria is all TRUE 
 criteria.pollutant.list <- unique(min.criteria$criteria.Pollutant)
@@ -215,24 +230,25 @@ Has.min.criteria <- analytes %in% criteria.pollutant.list #Caution!!"analytes" c
 check <- data.frame(Has.min.criteria, analytes)
 check  #no minimum criteria/benchmarks exist for Total Solids or DEET or Pronamide or 2,6-BAM, Etridiazole, Mexacarbate
 #end recursion
-min.criteria[criteria$Pollutant == 'aminomethyl phosphoric acid (AMPA) Glyphosate degradate','criteria.Pollutant'] <- "Aminomethylphosphonic acid (AMPA)" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[criteria$Pollutant == '2,6-Dichlorobenzamide (BAM)','criteria.Pollutant'] <- "2,6-Dichlorobenzamide" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[criteria$Pollutant == 'Endosulfan Sulfate','criteria.Pollutant'] <- "Endosulfan sulfate" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[criteria$Pollutant == '4,4`-DDD','criteria.Pollutant'] <- "4,4´-DDD" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[criteria$Pollutant == '4,4`-DDE','criteria.Pollutant'] <- "4,4´-DDE" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[criteria$Pollutant == 'Propoxur','criteria.Pollutant'] <- "Baygon (Propoxur)" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[criteria$Pollutant == 'MCPP-p DMAS','criteria.Pollutant'] <- "MCPP" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[criteria$Pollutant == 'Sodium acifluorfen','criteria.Pollutant'] <- "Acifluorfen" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[criteria$Pollutant == 'MCPA EHE','criteria.Pollutant'] <- "MCPA" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[criteria$Pollutant == 'Metsulfuron','criteria.Pollutant'] <- "Metsulfuron Methyl" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == "aminomethyl phosphoric acid (AMPA) Glyphosate degradate", "criteria.Pollutant"] <- "Aminomethylphosphonic acid (AMPA)" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == '2,6-Dichlorobenzamide (BAM)','criteria.Pollutant'] <- "2,6-Dichlorobenzamide" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == 'Endosulfan Sulfate','criteria.Pollutant'] <- "Endosulfan sulfate" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == '4,4`-DDD','criteria.Pollutant'] <- "4,4´-DDD" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == '4,4`-DDE','criteria.Pollutant'] <- "4,4´-DDE" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == 'Propoxur','criteria.Pollutant'] <- "Baygon (Propoxur)" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == 'MCPP-p DMAS','criteria.Pollutant'] <- "MCPP" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == 'Acifluorfen (Sodium)','criteria.Pollutant'] <- "Acifluorfen" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == 'MCPA EHE','criteria.Pollutant'] <- "MCPA" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == 'Metsulfuron','criteria.Pollutant'] <- "Metsulfuron Methyl" #example for substitutions (first is old name in criteria list, second is new analyte name)
 #change min.criteria table - replace criteria value for 2,4-D with 2,4-D acids and salts
-aaa <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == "2,4-D acids and salts",'criteria.minimum.criteria.benchmark.value'])#benchmark for 2,4-D acids and salts
-min.criteria[criteria$Pollutant == '2,4-D','criteria.minimum.criteria.benchmark.value'] <- aaa 
-min.criteria <- min.criteria[-(382), ] #delete repeated imidacloprid
+#aaa <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == "2,4-D acids and salts",'criteria.minimum.criteria.benchmark.value'])#benchmark for 2,4-D acids and salts
+#min.criteria[criteria$Pollutant == '2,4-D','criteria.minimum.criteria.benchmark.value'] <- aaa 
+#min.criteria <- min.criteria[-(446), ] #delete repeated imidacloprid
+
+
 
 ######################################
-min.criteria0 <- min.criteria
-min.criteria <- subset(min.criteria0, (min.criteria0$criteria.minimum.criteria.benchmark.value) != "")
+min.criteria <- subset(min.criteria, (min.criteria$criteria.minimum.criteria.benchmark.value) != "")
 for(i in 1:nrow(min.criteria)){
   if(min.criteria$criteria.Pollutant[i] == "Chlorpyrifos"){  #Chlorpyrifos is only standard where we draw both lines
     min.criteria$label[i] <- (paste0("\nAcute WQS = 0.083 ug/L\nChronic WQS = 0.041 ug/L"))
@@ -250,11 +266,14 @@ for(i in 1:nrow(min.criteria)){
     }
   }
 }
+#df[is.na(df$col),’col’] <- 0
+min.criteria[min.criteria$criteria.Pollutant=="Atrazine", "label"] <- paste0("\nEPA benchmark = 1 ug/L\nproposed EPA benchmark = 0.001 ug/L")
+min.criteria[min.criteria$criteria.Pollutant=="Simazine", "label"] <- paste0("\nEPA benchmark = 36 ug/L\nproposed EPA benchmark = 2.24 ug/L")
 ######################################
 
 ####duplicate dataset.
 mydata_clean_noV <- mydata_clean
-rm(mydata_clean)
+#rm(mydata_clean)
 
 ####fill out ug/L column----
 unique(mydata_clean_noV$Units)
@@ -335,7 +354,7 @@ aaa <- (mydata_clean_noV[mydata_clean_noV$exceed.type == "no benchmark available
 unique(aaa$Analyte) #confirmed, no criteria for TS, and DEET, 2,6-BAM, pronamide, 44DDD, 44DDE, chlorpropham, acetamiprid, mexacarbate, etridiazole, Triadimefon
 #changed criteria for 2,4-D
 
-rm(mydata)
+#rm(mydata)
 
 ##re-make detections subset with the new columns
 detections <- subset(mydata_clean_noV, is.na(RESULT_clean) == FALSE) #subset out the NDs 
@@ -366,6 +385,11 @@ for(i in 1:nrow(mydata_clean_noV)){
     mydata_clean_noV$Station_Description[i] <- "Little Walla Walla River at The Frog"  
   }
 }
+
+#subset the Basin "Hood River POCIS/SPMD" and assign new name
+#df[is.na(df$col),"col"] <- 0
+mydata_clean_noV[mydata_clean_noV$Basin == "Hood River POCIS/SPMD", "Basin"] <- "Hood River POCIS_SPMD"
+
 ###########################
 # ####Output a summary table 
 # Det.freq.table <- data.frame("Station"=NA, "Station.Description"=NA, "Parameter"=NA,"Average"=NA, "Max"=NA, "criteria"=NA, "ALR"=NA, "N Samples" = NA, "percent.det.freq"=NA, "exceed.type"=NA, stringsAsFactors=FALSE)
@@ -485,22 +509,26 @@ ALR.table <- data.frame("Basin"=NA,
                         "exceed.type"=NA, 
                         stringsAsFactors=FALSE)
 
+B <- "Wasco"
+ii <- "Malathion"
+  
 #aggregate over each basin by parameter (2 & 3)
 for (B in unique(mydata_clean_noV$Basin)) {
   subset.B <- subset(mydata_clean_noV, Basin == B)
   for (ii in analytes){
     subset.points <- subset(subset.B, Analyte == ii)
     if(length(subset.points$RESULT > 0) & any(subset.points$RESULT_clean.ug.l.neg > 0)){ #if there is a result and there is detection
-      
+      #print("detections")
       tot.n <- nrow(subset.points)
       detects <- subset(subset.points, is.na(exceed.type) == FALSE)
       det.n <- nrow(detects)
       percent.det.freq <- (det.n/tot.n)*100
       
       Basin <- min(subset.points$Basin)
-      Station <- min(subset.points$Station_Number)
-      Station.Description <- min(subset.points$Station_Description)
+      Station <- "basin aggregate"
+      Station.Description <- "basin aggregate"
       Analyte <- min(subset.points$Analyte)
+      if(Basin=="Walla Walla" | Basin=="Wasco" | Basin == "Hood River") subset.points <- subset.points[subset.points$date> "05/01/2014", ]
       Average <- mean(subset.points$RESULT_clean.ug.l.subND)
       Median <- median(subset.points$RESULT_clean.ug.l.subND)
       Max <- max(subset.points$RESULT_clean.ug.l.subND)
@@ -581,9 +609,9 @@ library(gridExtra)
 #stations sorted by shape
 
 B <- "Hood River"
-ii <- "Deisopropylatrazine"
+ii <- "Atrazine"
 ii <- "Total Solids"
-B <- "Walla Walla"
+B <- "Pudding"
 ii <- "Chlorpyrifos"
 B <- "Yamhill"
 ii <- "Bifenthrin"
@@ -622,7 +650,7 @@ for (B in unique(mydata_clean_noV$Basin)) {
       if(length(numeric.criterion.graph)==0){  #if there is NO DEQ criteria or EPA benchmark
         title <- (paste0(B, " 2014\n", ii, "\nNo benchmark available")) 
       }else{
-        if(ii != "Chlorpyrifos" & ii != "2,4-D" & length(numeric.criterion.graph)>0){  #if there IS DEQ criteria or EPA benchmark
+        if(ii != "Chlorpyrifos" & ii != "2,4-D" & ii != "Atrazine" & ii != "Simazine" & length(numeric.criterion.graph)>0){  #list of names of the exceptions#if there IS DEQ criteria or EPA benchmark
           a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
           title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
         }else{
@@ -634,7 +662,19 @@ for (B in unique(mydata_clean_noV$Basin)) {
             if(ii == "2,4-D"){  #Using the "2,4-D Acids and Salts"  
               a <- a + geom_hline(yintercept=13.1)  
               title <- (paste0(B, " 2014\n", ii, "\nEPA benchmark = 13.1 ug/L "))
-            }
+              }else{
+                if(ii == "Atrazine"){  #Proposed EPA benchmarks 12/17/14  
+                  a <- a + geom_hline(yintercept=1.0, linetype=1)  #draw solid last year's EPA benchmark
+                  a <- a + geom_hline(yintercept=0.001, linetype=2)  #draw dashed proposed EPA benchmark
+                  title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
+                }else{
+                  if(ii == "Simazine"){  #Proposed EPA benchmarks 12/17/14  
+                    a <- a + geom_hline(yintercept=36, linetype=1)  #draw solid line last year's EPA benchmark
+                    a <- a + geom_hline(yintercept=2.24, linetype=2)  #draw dashed line proposed EPA benchmark
+                    title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
+                  }
+                }
+              }
           }
         }
       }

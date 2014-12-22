@@ -240,6 +240,8 @@ min.criteria[min.criteria$criteria.Pollutant == 'MCPP-p DMAS','criteria.Pollutan
 min.criteria[min.criteria$criteria.Pollutant == 'Acifluorfen (Sodium)','criteria.Pollutant'] <- "Acifluorfen" #example for substitutions (first is old name in criteria list, second is new analyte name)
 min.criteria[min.criteria$criteria.Pollutant == 'MCPA EHE','criteria.Pollutant'] <- "MCPA" #example for substitutions (first is old name in criteria list, second is new analyte name)
 min.criteria[min.criteria$criteria.Pollutant == 'Metsulfuron','criteria.Pollutant'] <- "Metsulfuron Methyl" #example for substitutions (first is old name in criteria list, second is new analyte name)
+#min.criteria[min.criteria$criteria.Pollutant == 'Triazine DIA degredate','criteria.Pollutant'] <- "Deisopropylatrazine" #example for substitutions (first is old name in criteria list, second is new analyte name)
+#min.criteria[min.criteria$criteria.Pollutant == 'Triazine DEA degredate','criteria.Pollutant'] <- "Desethylatrazine" #example for substitutions (first is old name in criteria list, second is new analyte name)
 #change min.criteria table - replace criteria value for 2,4-D with 2,4-D acids and salts
 #aaa <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == "2,4-D acids and salts",'criteria.minimum.criteria.benchmark.value'])#benchmark for 2,4-D acids and salts
 #min.criteria[criteria$Pollutant == '2,4-D','criteria.minimum.criteria.benchmark.value'] <- aaa 
@@ -391,178 +393,227 @@ for(i in 1:nrow(mydata_clean_noV)){
 mydata_clean_noV[mydata_clean_noV$Basin == "Hood River POCIS/SPMD", "Basin"] <- "Hood River POCIS_SPMD"
 
 ###########################
-# ####Output a summary table 
-# Det.freq.table <- data.frame("Station"=NA, "Station.Description"=NA, "Parameter"=NA,"Average"=NA, "Max"=NA, "criteria"=NA, "ALR"=NA, "N Samples" = NA, "percent.det.freq"=NA, "exceed.type"=NA, stringsAsFactors=FALSE)
-# 
-# ####Four
-# for(ii in analytes){
-#   subset.points0 <- subset(mydata_clean_noV, Analyte == ii)#aaa
-#   tot.n <- nrow(subset.points0)#bbb
-#   for(i in station.list){
-#     subset.points <- subset(subset.points0, Station_Number == i)#ccc
-#     if(length(subset.points$RESULT_clean)>0){
-#       
-#       detects.n <- nrow(subset(subset.points, is.na(RESULT_clean) == FALSE))
-#       type.n <- nrow(subset.points)#ddd
-#       percent.det.freq <- (detects.n/type.n)*100
-#       
-#       Station <- min(subset.points$Station_Number)
-#       Station.Description <- min(subset.points$Station_Description)
-#       Analyte <- min(subset.points$Analyte)
-#       Average <- mean(subset.points$RESULT_clean.ug.l.subND)
-#       Max <- max(subset.points$RESULT_clean.ug.l.subND)
-#       matchup <- match(Analyte, min.criteria$criteria.Pollutant)
-#       criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
-#       ALR <- Max/criteria
-#       
-#       df1 <- data.frame("Station"=Station, "Station.Description"=Station.Description, "Parameter"=Analyte,"Average"=Average, "Max"=Max, "criteria"=criteria, "ALR"="Not Calculated", "N Samples" = type.n, "percent.det.freq"=percent.det.freq, "exceed.type"="Not Calculated", stringsAsFactors=FALSE)
-#       Det.freq.table <- rbind(df1, Det.freq.table)
-#     }
-#   }
-# }
-# 
-# ####Two and Three
-# #Aggregate Basin wide statistics
-# ii <- "Hexazinone"
-# for(ii in analytes){
-#   subset.points <- subset(mydata_clean_noV, Analyte == ii)
-#   if(length(subset.points$RESULT_clean)>0){
-#     
-#     tot.n <- nrow(subset.points)
-#     detects <- subset(subset.points, is.na(exceed.type) == FALSE)
-#     det.n <- nrow(detects)
-#     percent.det.freq <- (det.n/tot.n)*100
-#     
-#     Station <- "Basin aggregate"
-#     Station.Description <- "Basin aggregate"
-#     Analyte <- min(subset.points$Analyte)
-#     Average <- mean(subset.points$RESULT_clean.ug.l.subND)
-#     Max <- max(subset.points$RESULT_clean.ug.l.subND)
-#     matchup <- match(Analyte, min.criteria$criteria.Pollutant)
-#     criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
-#     ALR <- Max/criteria
-#     
-#     df1 <- data.frame("Station"=Station, 
-#                       "Station.Description"=Station.Description, 
-#                       "Parameter"=Analyte,
-#                       "Average"=Average, 
-#                       "Max"=Max, 
-#                       "criteria"=criteria, 
-#                       "ALR"=ALR, 
-#                       "N Samples" = tot.n, 
-#                       "percent.det.freq"=percent.det.freq, 
-#                       "exceed.type"="Total Detection Freq", 
-#                       stringsAsFactors=FALSE)
-#     Det.freq.table <- rbind(df1, Det.freq.table)
-#   }
-# }
-# 
-# ####One
-# for(ii in analytes){
-#   subset.points0 <- subset(mydata_clean_noV, Analyte == ii)#aaa
-#   n.tot <- nrow(subset.points0)#bbb
-#   for(iii in unique(mydata_clean_noV$exceed.type)){
-#     subset.points <- subset(subset.points0, exceed.type == iii)#ccc
-#     if(length(subset.points$RESULT_clean)>0){
-#       
-#       n.exceed.type <- nrow(subset.points)#ddd
-#       percent.det.freq <- (n.exceed.type/n.tot)*100
-#       
-#       Basin <- min(subset.points$Basin)
-#       Station <- min(subset.points$Station_Number)
-#       Station.Description <- min(subset.points$Station_Description)
-#       Analyte <- min(subset.points$Analyte)
-#       Average <- mean(subset.points$RESULT_clean.ug.l.subND)
-#       Max <- max(subset.points$RESULT_clean.ug.l.subND)
-#       matchup <- match(Analyte, min.criteria$criteria.Pollutant)
-#       criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
-#       ALR <- Max/criteria
-#       
-#       df1 <- data.frame("Station"=Basin, "Station.Description"=Basin, "Parameter"=Analyte,"Average"=Average, "Max"=Max, "criteria"=criteria, "ALR"="Not Calculated", "N Samples" = n.exceed.type, "percent.det.freq"=percent.det.freq, "exceed.type"=iii, stringsAsFactors=FALSE)
-#       Det.freq.table <- rbind(df1, Det.freq.table)
-#     }
-#   }
-# }
-# 
-# Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
-# 
-# write.csv(Det.freq.table, paste0(outpath.plot.points,"State_2014_detection_frequencies_savedon", Sys.Date(),".csv")) 
-# 
-# write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_2014_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+##########################
+####Output a summary table 
+Det.freq.table <- data.frame("Basin"=NA,
+                             "Station"=NA, 
+                             "Station.Description"=NA, 
+                             "Parameter"=NA,
+                             "Median"=NA,
+                             "Average"=NA, 
+                             "Max"=NA, 
+                             "criteria"=NA, 
+                             "ALR"=NA, 
+                             "N Samples" = NA, 
+                             "percent.det.freq"=NA, 
+                             "exceed.type"=NA, 
+                             stringsAsFactors=FALSE)
 
-
-###########################
-
-####Output the ALR table 
-ALR.table <- data.frame("Basin"=NA, 
-                        "Station"=NA, 
-                        "Station.Description"=NA, 
-                        "Parameter"=NA,
-                        "Average"=NA, 
-                        "Max"=NA, 
-                        "Median"=NA,
-                        "criteria"=NA, 
-                        "ALR"=NA, 
-                        "N detects"=NA, 
-                        "N Samples" = NA, 
-                        "percent.det.freq"=NA, 
-                        "exceed.type"=NA, 
-                        stringsAsFactors=FALSE)
-
-B <- "Wasco"
-ii <- "Malathion"
+####Add the Basin loop
+for(B in unique(mydata_clean_noV$Basin)){
+  subset.pointsB <- mydata_clean_noV[mydata_clean_noV$Basin == B,]
+  print(B)
+  ####Four
+  for(ii in analytes){
+    subset.points0 <- subset(subset.pointsB, Analyte == ii)#aaa
+    tot.n <- nrow(subset.points0)#bbb
+    for(i in station.list){
+      subset.points <- subset(subset.points0, Station_Number == i)#ccc
+      if(length(subset.points$RESULT_clean)>0){
+        
+        detects.n <- nrow(subset(subset.points, is.na(RESULT_clean) == FALSE))
+        type.n <- nrow(subset.points)#ddd
+        percent.det.freq <- (detects.n/type.n)*100
+        
+        Station <- min(subset.points$Station_Number)
+        Station.Description <- min(subset.points$Station_Description)
+        Analyte <- min(subset.points$Analyte)
+        Median <- median(subset.points$RESULT_clean.ug.l.subND)
+        Average <- mean(subset.points$RESULT_clean.ug.l.subND)
+        Max <- max(subset.points$RESULT_clean.ug.l.subND)
+        matchup <- match(Analyte, min.criteria$criteria.Pollutant)
+        criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
+        ALR <- Max/criteria
+        
+        df1 <- data.frame("Basin"=B, 
+                          "Station"=Station, 
+                          "Station.Description"=Station.Description, 
+                          "Parameter"=Analyte,
+                          "Median"=Median,
+                          "Average"=Average, 
+                          "Max"=Max, 
+                          "criteria"=criteria, 
+                          "ALR"="Not Calculated", 
+                          "N Samples" = type.n, 
+                          "percent.det.freq"=percent.det.freq, 
+                          "exceed.type"="Not Calculated", 
+                          stringsAsFactors=FALSE)
+        Det.freq.table <- rbind(df1, Det.freq.table)
+      }
+    }
+  }
   
-#aggregate over each basin by parameter (2 & 3)
-for (B in unique(mydata_clean_noV$Basin)) {
-  subset.B <- subset(mydata_clean_noV, Basin == B)
-  for (ii in analytes){
-    subset.points <- subset(subset.B, Analyte == ii)
-    if(length(subset.points$RESULT > 0) & any(subset.points$RESULT_clean.ug.l.neg > 0)){ #if there is a result and there is detection
-      #print("detections")
+  
+  
+  ####Two and Three
+  #Aggregate Basin wide statistics
+  ii <- "Hexazinone"
+  for(ii in analytes){
+    subset.points <- subset(subset.pointsB, Analyte == ii)
+    if(length(subset.points$RESULT_clean)>0){
+      
       tot.n <- nrow(subset.points)
       detects <- subset(subset.points, is.na(exceed.type) == FALSE)
       det.n <- nrow(detects)
       percent.det.freq <- (det.n/tot.n)*100
       
-      Basin <- min(subset.points$Basin)
-      Station <- "basin aggregate"
-      Station.Description <- "basin aggregate"
+      Station <- "Basin aggregate"
+      Station.Description <- "Basin aggregate"
       Analyte <- min(subset.points$Analyte)
-      if(Basin=="Walla Walla" | Basin=="Wasco" | Basin == "Hood River") subset.points <- subset.points[subset.points$date> "05/01/2014", ]
-      Average <- mean(subset.points$RESULT_clean.ug.l.subND)
       Median <- median(subset.points$RESULT_clean.ug.l.subND)
+      Average <- mean(subset.points$RESULT_clean.ug.l.subND)
       Max <- max(subset.points$RESULT_clean.ug.l.subND)
       matchup <- match(Analyte, min.criteria$criteria.Pollutant)
       criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
       ALR <- Max/criteria
       
-      ALR1 <- data.frame("Basin"=Basin, 
-                         "Station"="Basin aggregate", 
-                         "Station.Description"="Basin aggregate", 
-                         "Parameter"=Analyte,
-                         "Average"=Average, 
-                         "Max"=Max, 
-                         "Median"=Median,
-                         "criteria"=criteria, 
-                         "ALR"=ALR, 
-                         "N detects"=det.n, 
-                         "N Samples" = tot.n, 
-                         "percent.det.freq"=percent.det.freq, 
-                         "exceed.type"="Basin Detection Freq", 
-                         stringsAsFactors=FALSE)
-      ALR.table <- rbind(ALR1, ALR.table)
-      #ALR.table <- ALR.table[-nrow(ALR.table),]
-      
+      df1 <- data.frame("Basin"=B, 
+                        "Station"="Basin aggregate", 
+                        "Station.Description"="Basin aggregate", 
+                        "Parameter"=Analyte,
+                        "Median"=Median,
+                        "Average"=Average, 
+                        "Max"=Max, 
+                        "criteria"=criteria, 
+                        "ALR"=ALR, 
+                        "N Samples" = tot.n, 
+                        "percent.det.freq"=percent.det.freq, 
+                        "exceed.type"="Total Detection Freq", 
+                        stringsAsFactors=FALSE)
+      Det.freq.table <- rbind(df1, Det.freq.table)
+    }
+  }
+  
+  ####One
+  for(ii in analytes){
+    subset.points0 <- subset(subset.pointsB, Analyte == ii)#aaa
+    n.tot <- nrow(subset.points0)#bbb
+    for(iii in unique(mydata_clean_noV$exceed.type)){
+      subset.points <- subset(subset.points0, exceed.type == iii)#ccc
+      if(length(subset.points$RESULT_clean)>0){
+        
+        n.exceed.type <- nrow(subset.points)#ddd
+        percent.det.freq <- (n.exceed.type/n.tot)*100
+        
+        Basin <- min(subset.points$Basin)
+        Station <- min(subset.points$Station_Number)
+        Station.Description <- min(subset.points$Station_Description)
+        Analyte <- min(subset.points$Analyte)
+        Median <- median(subset.points$RESULT_clean.ug.l.subND)
+        Average <- mean(subset.points$RESULT_clean.ug.l.subND)
+        Max <- max(subset.points$RESULT_clean.ug.l.subND)
+        matchup <- match(Analyte, min.criteria$criteria.Pollutant)
+        criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
+        ALR <- Max/criteria
+        
+        df1 <- data.frame("Basin"=B, 
+                          "Station"=Basin, 
+                          "Station.Description"=Basin, 
+                          "Parameter"=Analyte,
+                          "Median"=Median,
+                          "Average"=Average, 
+                          "Max"=Max, 
+                          "criteria"=criteria, 
+                          "ALR"="Not Calculated", 
+                          "N Samples" = n.exceed.type, 
+                          "percent.det.freq"=percent.det.freq, 
+                          "exceed.type"=iii, 
+                          stringsAsFactors=FALSE)
+        Det.freq.table <- rbind(df1, Det.freq.table)
+      }
     }
   }
 }
 
-B <- "Middle Deschutes"
-ii <- "Hexazinone"
-iii <- "less than ten percent of benchmark"
+Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
 
-write.csv(ALR.table, paste0(outpath.plot.points,"State_2014_ALR.table_savedon", Sys.Date(),".csv")) 
+write.csv(Det.freq.table, paste0(outpath.plot.points,"State_2014_detection_frequencies_savedon", Sys.Date(),".csv")) 
+
 write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_2014_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+
+
+###########################
+
+# ####Output the ALR table 
+# ALR.table <- data.frame("Basin"=NA, 
+#                         "Station"=NA, 
+#                         "Station.Description"=NA, 
+#                         "Parameter"=NA,
+#                         "Average"=NA, 
+#                         "Max"=NA, 
+#                         "Median"=NA,
+#                         "criteria"=NA, 
+#                         "ALR"=NA, 
+#                         "N detects"=NA, 
+#                         "N Samples" = NA, 
+#                         "percent.det.freq"=NA, 
+#                         "exceed.type"=NA, 
+#                         stringsAsFactors=FALSE)
+# 
+# B <- "Wasco"
+# ii <- "Malathion"
+#   
+# #aggregate over each basin by parameter (2 & 3)
+# for (B in unique(mydata_clean_noV$Basin)) {
+#   subset.B <- subset(mydata_clean_noV, Basin == B)
+#   for (ii in analytes){
+#     subset.points <- subset(subset.B, Analyte == ii)
+#     if(length(subset.points$RESULT > 0) & any(subset.points$RESULT_clean.ug.l.neg > 0)){ #if there is a result and there is detection
+#       #print("detections")
+#       tot.n <- nrow(subset.points)
+#       detects <- subset(subset.points, is.na(exceed.type) == FALSE)
+#       det.n <- nrow(detects)
+#       percent.det.freq <- (det.n/tot.n)*100
+#       
+#       Basin <- min(subset.points$Basin)
+#       Station <- "basin aggregate"
+#       Station.Description <- "basin aggregate"
+#       Analyte <- min(subset.points$Analyte)
+#       if(Basin=="Walla Walla" | Basin=="Wasco" | Basin == "Hood River") subset.points <- subset.points[subset.points$date> "05/01/2014", ]
+#       Average <- mean(subset.points$RESULT_clean.ug.l.subND)
+#       Median <- median(subset.points$RESULT_clean.ug.l.subND)
+#       Max <- max(subset.points$RESULT_clean.ug.l.subND)
+#       matchup <- match(Analyte, min.criteria$criteria.Pollutant)
+#       criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
+#       ALR <- Max/criteria
+#       
+#       ALR1 <- data.frame("Basin"=Basin, 
+#                          "Station"="Basin aggregate", 
+#                          "Station.Description"="Basin aggregate", 
+#                          "Parameter"=Analyte,
+#                          "Average"=Average, 
+#                          "Max"=Max, 
+#                          "Median"=Median,
+#                          "criteria"=criteria, 
+#                          "ALR"=ALR, 
+#                          "N detects"=det.n, 
+#                          "N Samples" = tot.n, 
+#                          "percent.det.freq"=percent.det.freq, 
+#                          "exceed.type"="Basin Detection Freq", 
+#                          stringsAsFactors=FALSE)
+#       ALR.table <- rbind(ALR1, ALR.table)
+#       #ALR.table <- ALR.table[-nrow(ALR.table),]
+#       
+#     }
+#   }
+# }
+# 
+# B <- "Middle Deschutes"
+# ii <- "Hexazinone"
+# iii <- "less than ten percent of benchmark"
+# 
+# write.csv(ALR.table, paste0(outpath.plot.points,"State_2014_ALR.table_savedon", Sys.Date(),".csv")) 
+# write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_2014_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
 
 ##################################
 
@@ -609,9 +660,9 @@ library(gridExtra)
 #stations sorted by shape
 
 B <- "Hood River"
-ii <- "Atrazine"
+ii <- "Deisopropylatrazine"
 ii <- "Total Solids"
-B <- "Pudding"
+B <- "Amazon"
 ii <- "Chlorpyrifos"
 B <- "Yamhill"
 ii <- "Bifenthrin"
@@ -643,6 +694,7 @@ for (B in unique(mydata_clean_noV$Basin)) {
       a <- a + xlab("") + ylab(("ug/L")) #write the labels
       a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
       a <- a + coord_cartesian(xlim=c(min(subset.B$date)-1, max(subset.B$date)+1)) #add a day to beginning and end
+      a <- a + theme(aspect.ratio=1)
       a <- a + theme_bw() #blackandwhite theme
       a <- a + ylim(c(0, max(subset.ii$RESULT_clean.ug.l.subND*1.8))) #set the y range from zero to some multiplier of the max result to increase the head space
       a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
@@ -650,7 +702,13 @@ for (B in unique(mydata_clean_noV$Basin)) {
       if(length(numeric.criterion.graph)==0){  #if there is NO DEQ criteria or EPA benchmark
         title <- (paste0(B, " 2014\n", ii, "\nNo benchmark available")) 
       }else{
-        if(ii != "Chlorpyrifos" & ii != "2,4-D" & ii != "Atrazine" & ii != "Simazine" & length(numeric.criterion.graph)>0){  #list of names of the exceptions#if there IS DEQ criteria or EPA benchmark
+        if(ii != "Chlorpyrifos" 
+           & ii != "2,4-D" 
+           & ii != "Atrazine" 
+           & ii != "Simazine" 
+           #& ii != "Deisopropylatrazine" 
+           #& ii != "Desethylatrazine" 
+           & length(numeric.criterion.graph)>0){  #list of names of the exceptions#if there IS DEQ criteria or EPA benchmark
           a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
           title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
         }else{
@@ -662,19 +720,29 @@ for (B in unique(mydata_clean_noV$Basin)) {
             if(ii == "2,4-D"){  #Using the "2,4-D Acids and Salts"  
               a <- a + geom_hline(yintercept=13.1)  
               title <- (paste0(B, " 2014\n", ii, "\nEPA benchmark = 13.1 ug/L "))
+            }else{
+              if(ii == "Atrazine"){  #Proposed EPA benchmarks 12/17/14  
+                a <- a + geom_hline(yintercept=1.0, linetype=1)  #draw solid last year's EPA benchmark
+                a <- a + geom_hline(yintercept=0.001, linetype=2)  #draw dashed proposed EPA benchmark
+                title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
               }else{
-                if(ii == "Atrazine"){  #Proposed EPA benchmarks 12/17/14  
-                  a <- a + geom_hline(yintercept=1.0, linetype=1)  #draw solid last year's EPA benchmark
-                  a <- a + geom_hline(yintercept=0.001, linetype=2)  #draw dashed proposed EPA benchmark
+                if(ii == "Simazine"){  #Proposed EPA benchmarks 12/17/14  
+                  a <- a + geom_hline(yintercept=36, linetype=1)  #draw solid line last year's EPA benchmark
+                  a <- a + geom_hline(yintercept=2.24, linetype=2)  #draw dashed line proposed EPA benchmark
                   title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
                 }else{
-                  if(ii == "Simazine"){  #Proposed EPA benchmarks 12/17/14  
-                    a <- a + geom_hline(yintercept=36, linetype=1)  #draw solid line last year's EPA benchmark
-                    a <- a + geom_hline(yintercept=2.24, linetype=2)  #draw dashed line proposed EPA benchmark
-                    title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
+                  if(ii == "Deisopropylatrazine"){  #Proposed EPA benchmarks 12/17/14  
+                    a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
+                    title <- (paste0(B, " 2014\n", "Triazine DIA degradate", numeric.criterion.label))
+                  }else{
+                    if(ii == "Desethylatrazine"){  #Proposed EPA benchmarks 12/17/14  
+                      a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
+                      title <- (paste0(B, " 2014\n", "Triazine DEA degradate", numeric.criterion.label))
+                    }
                   }
                 }
               }
+            }
           }
         }
       }
@@ -712,6 +780,7 @@ for(B in unique(mydata_clean_noV$Basin)){
                     shape=Station_Description, #change point shapes by station
                     color=Station_Description)) #change point colors by station
     a <- a + geom_point(size = 4) #set the point size
+    a <- a + theme(aspect.ratio=1/2)
     a <- a + xlab("") + ylab(paste0("ug/L")) + ggtitle(paste0(B, " 2014")) #write the labels and title
     a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
     a <- a + facet_wrap(~Analyte, drop=TRUE, scales = "free_y")

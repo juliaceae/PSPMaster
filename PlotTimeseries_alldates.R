@@ -3,10 +3,44 @@
 #authorship
 ####
 
+library(stringr)
+
 ####Run "P:\Rscripts\Criteria\ToxicsCriteriaPSP.R" first.
 #load("P:\\Rscripts\\Criteria\\2014-12-08\\min.Aquatic.Life.criteria.values_savedon2014-12-08.Rdata")
 outpath.criteria <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), "\\", sep="") 
 load(paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".Rdata"))
+
+#### Load LASAR file ####
+lasar <- read.csv('//deqhq1/psp/rscripts/datapullfromlead/psp2005to2011compile20140121Version2.csv')
+
+#Remove unit from parameter.name
+lasar$PARAMETER.NAME <- str_trim(gsub('\\(.*','',lasar$PARAMETER.NAME))
+
+#Convert to consistent Project names
+revalue_vector <- c()
+for (i in 1:length(levels(lasar$Sampling.Subproject.Name))) {
+  revalue_vector <- c(revalue_vector, strsplit(levels(lasar$Sampling.Subproject.Name), " P")[[i]][1])
+  names(revalue_vector)[i] <- levels(lasar$Sampling.Subproject.Name)[i]
+}
+lasar$Sampling.Subproject.Name <- revalue(lasar$Sampling.Subproject.Name, replace = revalue_vector)
+levels(lasar$Sampling.Subproject.Name) <- gsub(' Basin','',levels(lasar$Sampling.Subproject.Name))
+
+#Convert lasar datetime
+lasar$Sample.Date.Time <- as.Date(strptime(lasar$Sample.Date.Time, format="%m/%d/%Y")) 
+#lasar$Sample.Date.Time <- as.POSIXct(strptime(lasar$Sample.Date.Time, format = '%m/%d/%Y %H:%M'))
+
+#Match the Element column names Basin, Station_Number, Station_Description, date, Analyte, RESULT, MRL, Units, SampleType, RESULT_clean, "RESULT_clean.ug.l"=NA, "RESULT_clean.ug.l.subND"=NA
+lasar$Client <- 'Pesticide Stewardship Partnerships'
+lasar <- rename(lasar, c('Sampling.Event.Number' = 'Work_Order', 
+                         'Sampling.Subproject.Name' = 'Project',
+                         'Station.Identifier' = 'Station_ID',
+                         'Station.Description' = 'Station_Description',
+                         'Sample.Date.Time' = 'Sampled',
+                         'PARAMETER.NAME' = 'OrigAnalyte',
+                         'Limit.of.Detection' = 'MRL',
+                         'RESULT..LOQ.' = 'Result',
+                         'Original_UNITS' = 'Units',
+                         'QA.QC.Type' = 'SampleType'))
 
 require(plyr)
 
@@ -86,6 +120,9 @@ new.data.n <- nrow(mydata)
 if(new.data.n > old.data.n) print("NEW DATA! NEW DATA! NEW DATA! NEW DATA! NEW DATA AVAILABLE!")
 
 library(stringr)
+mydata <- rbind(mydata[,c('Project', 'Station_ID', 'Station_Description', 'Sampled', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType')], 
+                lasar[,c('Project', 'Station_ID', 'Station_Description', 'Sampled', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType')])
+
 Analyte <- mydata$OrigAnalyte
 Station_Description <- mydata$Station_Description
 Station_Number <- as.numeric(mydata$Station_ID)
@@ -119,7 +156,8 @@ report
 
 ####convert dates from characters to dates
 #date <- as.Date(strptime(mydata$Sampled, format="%d-%b-%y %H:%M:%s")) #still lost the hours/minutes
-date <- as.Date(strptime(mydata$Sampled_Date, format="%d %b %Y")) 
+#date <- as.Date(strptime(mydata$Sampled_Date, format="%d %b %Y")) 
+date <- as.Date(mydata$Sampled)
 
 MRL <- mydata$MRL
 
@@ -134,8 +172,10 @@ unique(mydata_clean$SampleType)
 ####deleting "Other::Ot" from SampleType (1/20/15 JC: right now, the Others are associated with Project/Basin"Lab Spike POCIS/SPMD")
 mydata_clean <- mydata_clean[mydata_clean$SampleType != "Other::Ot",]
 
-FD <- subset(mydata_clean, SampleType %in% c("Field Duplicate", "Field Duplicate::FD") & RESULT_clean != "NA") #dataframe of all detected FDs
+FD <- subset(mydata_clean, SampleType %in% c("Field Duplicate", "Field Duplicate::FD", 'Sample - Field Duplicate') & RESULT_clean != "NA") #dataframe of all detected FDs
 unique(FD$RESULT_clean)
+
+######## PICK UP HERE ########
 
 ####Make new subset without the Voids, Field Dupes and Blanks.
 sort(unique(mydata_clean$RESULT)) #verify that the names in quotes are the names being used in the datatable

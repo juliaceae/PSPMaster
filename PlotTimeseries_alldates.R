@@ -92,8 +92,7 @@ myQuery <- c()
 #qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Station_ID ='",station.list[i],"'  AND Client LIKE '%Pesticide%' AND Project LIKE '%Pudding%' AND (Work_Order LIKE '%130%' OR Work_Order LIKE '%131%') ")
 
 ## This line retreives all the pesticide samples received by the lab in 2014.  The query language is written in SQL.
-qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Client LIKE '%Pesticide%' AND 
-              (Work_Order LIKE '%140%' OR Work_Order LIKE '%141%') ")
+qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Client LIKE '%Pesticide%' ")
 ## This line adds the query language to the empty query.
 myQuery <- append(myQuery, qry)
 #}
@@ -108,16 +107,15 @@ for(i in 1:length(myQuery)) {
 
 unique(mydata$Work_Order)
 unique(mydata$Project)
-cd <- subset(mydata, Result == "Cancelled")
-vd <- subset(mydata, Result == "Void")
 
-
+####check for new data
 oldpath <-"\\\\Deqhq1\\PSP\\Rscripts\\2014\\old\\20140612\\"
 oldfile <- "State_2014_mydata_clean_noV.csv"
 old.data <- read.csv(paste0(oldpath, oldfile), colClasses = "character")
 old.data.n  <- nrow(old.data)#$Station_Number)
 new.data.n <- nrow(mydata)
 if(new.data.n > old.data.n) print("NEW DATA! NEW DATA! NEW DATA! NEW DATA! NEW DATA AVAILABLE!")
+####
 
 library(stringr)
 mydata <- rbind(mydata[,c('Project', 'Station_ID', 'Station_Description', 'Sampled', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType')], 
@@ -231,35 +229,6 @@ sort(unique(mydata_clean$date))
 
 ####Establish Benchmarks and Exceedances
 ####Currently doing this step in "ToxicsCriteriaPSP.R"  
-
-#### pre-processing minimum criteria with Excel for now:----
-#criteria.file <- "Pesticide Benchmarks and Criteria_Feb 04 2014.csv"
-#criteria <- read.csv(file=paste0("\\\\Deqhq1\\PSP\\Rscripts\\Wasco\\Wasco2013\\", criteria.file), row.names=1, colClasses = "character")
-
-#min.DEQ.criteria <- as.numeric(criteria$min.AL.DEQ.WQS)
-#min.EPA.criteria <- as.numeric(criteria$min.AL.EPA.benchmark)
-#min.criteria <- data.frame(criteria$Pollutant, min.DEQ.criteria, min.EPA.criteria, criteria$minimum.criteria.benchmark.value, stringsAsFactors = FALSE)
-
-#Acifluorfen Sodium update made after deleting Sodium acifluorfen (EPA 11/24/14-ish -see email chain). 
-#This update being made because the > sign isn't recognized in Excel... need to convert choosing the criteria to R scripts (JC 11/24/14).
-#min.criteria[min.criteria$criteria.Pollutant == "Acifluorfen (Sodium)", "criteria.minimum.criteria.benchmark.value"] <- "265"
-#min.criteria[min.criteria$criteria.Pollutant == "Acifluorfen (Sodium)", "min.EPA.criteria"] <- "265"
-
-#The Table 30 numerical updates (adopted by DEQ 4/18/14) (Table 40 did not have any numerical updates) are made here:
-#min.criteria[min.criteria$criteria.Pollutant == "Heptachlor Epoxide", "min.DEQ.criteria"] <- "0.0038"
-# min.criteria[min.criteria$criteria.Pollutant == "Endosulfan I", "min.DEQ.criteria"] <- "0.056"
-# min.criteria[min.criteria$criteria.Pollutant == "Endosulfan II", "min.DEQ.criteria"] <- "0.056"
-# 
-# min.criteria[min.criteria$criteria.Pollutant == "Heptachlor Epoxide", "criteria.minimum.criteria.benchmark.value"] <- "0.0038"
-# min.criteria[min.criteria$criteria.Pollutant == "Endosulfan I", "criteria.minimum.criteria.benchmark.value"] <- "0.056"
-# min.criteria[min.criteria$criteria.Pollutant == "Endosulfan II", "criteria.minimum.criteria.benchmark.value"] <- "0.056"
-
-#EPA's OPP benchmarks update as of 5/14/13
-#Not using new atrazine/simazine/desethylatrazine/deisopropylatrazine until we discuss at WQPMT on 12/16/14
-#min.criteria[min.criteria$criteria.Pollutant == "Atrazine", "min.EPA.criteria"] <- "0.001"
-#min.criteria[min.criteria$criteria.Pollutant == "Atrazine", "criteria.minimum.criteria.benchmark.value"] <- "0.001"
-
-######################################
 min.criteria <- min.AQL.1
 min.criteria <- rename(min.criteria , replace = c('Pollutant' = 'criteria.Pollutant',
                                                   'min.state.AQL' = 'min.DEQ.criteria', 
@@ -634,107 +603,6 @@ write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_2014_mydata_clean_
 
 ###########################
 
-# ####Output the ALR table 
-# ALR.table <- data.frame("Basin"=NA, 
-#                         "Station"=NA, 
-#                         "Station.Description"=NA, 
-#                         "Parameter"=NA,
-#                         "Average"=NA, 
-#                         "Max"=NA, 
-#                         "Median"=NA,
-#                         "criteria"=NA, 
-#                         "ALR"=NA, 
-#                         "N detects"=NA, 
-#                         "N Samples" = NA, 
-#                         "percent.det.freq"=NA, 
-#                         "exceed.type"=NA, 
-#                         stringsAsFactors=FALSE)
-# 
-# B <- "Wasco"
-# ii <- "Malathion"
-#   
-# #aggregate over each basin by parameter (2 & 3)
-# for (B in unique(mydata_clean_noV$Basin)) {
-#   subset.B <- subset(mydata_clean_noV, Basin == B)
-#   for (ii in analytes){
-#     subset.points <- subset(subset.B, Analyte == ii)
-#     if(length(subset.points$RESULT > 0) & any(subset.points$RESULT_clean.ug.l.neg > 0)){ #if there is a result and there is detection
-#       #print("detections")
-#       tot.n <- nrow(subset.points)
-#       detects <- subset(subset.points, is.na(exceed.type) == FALSE)
-#       det.n <- nrow(detects)
-#       percent.det.freq <- (det.n/tot.n)*100
-#       
-#       Basin <- min(subset.points$Basin)
-#       Station <- "basin aggregate"
-#       Station.Description <- "basin aggregate"
-#       Analyte <- min(subset.points$Analyte)
-#       if(Basin=="Walla Walla" | Basin=="Wasco" | Basin == "Hood River") subset.points <- subset.points[subset.points$date> "05/01/2014", ]
-#       Average <- mean(subset.points$RESULT_clean.ug.l.subND)
-#       Median <- median(subset.points$RESULT_clean.ug.l.subND)
-#       Max <- max(subset.points$RESULT_clean.ug.l.subND)
-#       matchup <- match(Analyte, min.criteria$criteria.Pollutant)
-#       criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
-#       ALR <- Max/criteria
-#       
-#       ALR1 <- data.frame("Basin"=Basin, 
-#                          "Station"="Basin aggregate", 
-#                          "Station.Description"="Basin aggregate", 
-#                          "Parameter"=Analyte,
-#                          "Average"=Average, 
-#                          "Max"=Max, 
-#                          "Median"=Median,
-#                          "criteria"=criteria, 
-#                          "ALR"=ALR, 
-#                          "N detects"=det.n, 
-#                          "N Samples" = tot.n, 
-#                          "percent.det.freq"=percent.det.freq, 
-#                          "exceed.type"="Basin Detection Freq", 
-#                          stringsAsFactors=FALSE)
-#       ALR.table <- rbind(ALR1, ALR.table)
-#       #ALR.table <- ALR.table[-nrow(ALR.table),]
-#       
-#     }
-#   }
-# }
-# 
-# B <- "Middle Deschutes"
-# ii <- "Hexazinone"
-# iii <- "less than ten percent of benchmark"
-# 
-# write.csv(ALR.table, paste0(outpath.plot.points,"State_2014_ALR.table_savedon", Sys.Date(),".csv")) 
-# write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_2014_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
-
-##################################
-
-####calculating the median malathion concentration in Wasco 2014:
-p <- "Malathion"
-b <- "Wasco"
-sub.B <- mydata_clean_noV[mydata_clean_noV$Basin == b & mydata_clean_noV$Analyte == p, ] 
-median(sub.B$RESULT_clean.ug.l, na.rm = TRUE) #median of detections
-nrow(sub.B[is.na(sub.B$RESULT_clean.ug.l)==FALSE & sub.B$final_digress==1,])/nrow(sub.B[is.na(sub.B$RESULT_clean.ug.l)==FALSE,])#percent of detects over benchmark
-
-#side note: the median of Malathion concentrations is the same if looking at Wasco or whole state, b/c 21/23 detects are in Wasco, and in WW, one conc is above and one below. 
-#ddd <- detections[detections$Analyte == "Malathion" & is.na(detections$RESULT_clean.ug.l) == FALSE, ]
-# mmm <- mydata_clean_noV[mydata_clean_noV$Analyte == "Malathion" & is.na(mydata_clean_noV$RESULT_clean.ug.l) == FALSE, ]
-# unique(ddd$Basin)
-# unique(mmm$Basin)
-# median(ddd$RESULT_clean.ug.l, na.rm = TRUE) #median of detections
-# median(mmm$RESULT_clean.ug.l, na.rm = TRUE) #median of detections
-
-####calculating the average and max diuron conc in Walla Walla distributaries 2014:
-p <- "Diuron"
-b <- c(32010, 33083, 33084) 
-sub.B <- mydata_clean_noV[mydata_clean_noV$Station_Number %in% b & mydata_clean_noV$Analyte == p, ] 
-Average <- mean(sub.B$RESULT_clean.ug.l.subND)
-Max <- max(sub.B$RESULT_clean.ug.l.subND)
-
-
-##################################
-
-####
-
-
 
 #########################################################################################################
 ####loop through analyte list and graph multiple stations
@@ -897,168 +765,59 @@ for(B in unique(mydata_clean_noV$Basin)){
 ##################################################################################
 
 ##################################################################################
-
-####For each station, graph all analytes
-#detections0 <- subset(detections, Station_Number == 36179)
-
-top.herb <- c("2,4-D",
-              "2,6-Dichlorobenzamide",
-              "Atrazine",
-              "Deisopropylatrazine",
-              "Desethylatrazine",
-              "Dichlobenil",
-              "Diuron",
-              "Simazine")
-herbicides <- c("2,4-D",
-                "2,6-Dichlorobenzamide",
-                "Acetochlor",
-                "Aminomethylphosphonic acid (AMPA)",
-                "Atrazine",
-                "Bromacil",
-                "Chlorpropham",
-                "Cycloate",
-                "Deisopropylatrazine",
-                "Desethylatrazine",
-                "Dicamba",
-                "Dichlobenil",
-                "Dimethenamid",
-                "Diuron",
-                "EPTC",
-                "Fluridone",
-                "Glyphosate",
-                "Hexazinone",
-                "Imazapyr",
-                "Linuron",
-                "Metolachlor",
-                "Metribuzin",
-                "Napropamide",
-                "Norflurazon",
-                "Oxyfluorfen",
-                "Pendimethalin",
-                "Prometon",
-                "Pronamide",
-                "Propazine",
-                "Simazine",
-                "Sulfometuron-methyl",
-                "Tebuthiuron",
-                "Terbacil",
-                "Triclopyr",
-                "Trifluralin")
-
-top.insect <- c( "Carbaryl",
-                 "Chlorpyrifos",
-                 "Imidacloprid",
-                 "Malathion")
-insecticides <- c( "4,4´-DDD",
-                   "4,4´-DDE",
-                   "Acetamiprid",
-                   "Bifenthrin",
-                   "Carbaryl",
-                   "Carbofuran",
-                   "Chlorpyrifos",
-                   "Diazinon",
-                   "Dimethoate",
-                   "Ethoprop",
-                   "Imidacloprid",
-                   "Malathion",
-                   "Methiocarb",
-                   "Methomyl",
-                   "Oxamyl",
-                   "Prometon")
-
-
-fungicides <- c("Propiconazole", "Pyraclostrobin", "Chlorothalonil")
-
-wood.preservative <- "Pentachlorophenol"
-PCP <- "DEET"
-
-xicides <- list(top.herb, top.insect, fungicides)     
-
-for(c in xicides){
-  subset.points <- mydata_clean_noV[mydata_clean_noV$Analyte %in% c,]
-  #subset.points <- subset(subset.points, Station_Number == i)
-  subset.points <- subset.points[!is.na(subset.points$RESULT_clean.ug.l),]
-  subset.points <- subset(subset.points, Analyte != "Total Solids")
-  print(c)
-  if(length(subset.points$RESULT_clean)>0){
-    
-    subset.points[is.na(subset.points$final_digress),"final_digress"] <- 0
-    subset.points[subset.points$final_digress == 0,"final_digress"] <- paste0("less than criteria or \n no criteria available")
-    subset.points[subset.points$final_digress == 1,"final_digress"] <- "more than criteria"
-    
-    a <- ggplot(subset.points, aes(date, RESULT_clean.ug.l))
-    a <- a + aes(shape = (final_digress)) +
-      geom_point(aes(colour = Analyte), size = 4) +
-      geom_point(colour="grey90", size = 1.5)
-    if(c == top.herb) title <- "Selected common herbicides"
-    if(c == top.insect) title <- "Selected common insecticides"
-    if(c == fungicides) title <- "Selected common fungicides"
-    
-    a <- a + xlab("2014") + ylab("ug/L") + ggtitle (title)
-    a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
-    a <- a + scale_x_date(breaks=unique(subset.points$date), labels=format(unique(subset.points$date), format="%m/%d"))
-    a <- a + coord_cartesian(xlim=c(min(subset.points$date)-1, max(subset.points$date)+1)) #add a day to beginning and end
-    #a <- a + ylim(c(0, max(subset.points$RESULT_clean.ug.l.subND*1.8))) #set the y range from zero to some multiplier of the max result to increase the head space
-    a <- a + theme(axis.text.x  = element_text(angle=90, vjust=0.5, color="black", size=8))
-    a <- a + theme(axis.text.y  = element_text(color="black", size=10))
-    #a <- a + guides(shape = guide_legend(ncol = 2)) #legend in two columns
-    #a <- a + guides(shape = guide_legend(ncol = 2))
-    #a <- a + theme(legend.position="bottom")
-    #a <- a + theme(legend.direction="vertical")
-    #a <- a + theme(legend.text=element_text(size=10))
-    a <- a + theme(legend.title=element_blank()) #remove title from legend
-    a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
-                                         x = 0, hjust = -0.1, vjust=0.1,
-                                         gp = gpar(fontface = "italic", fontsize = 10))) 
-    ggsave(filename = paste0(outpath.plot.points, title, "_2014_savedon", Sys.Date(),".jpg"), plot = a, scale=1.5)
-    
-  }else{print(paste0("non-detect_", c))}
-}
-
-##################################################################################
-
-#### For each station, graph all analytes
-#### Change the symbols to represent each analyte.  Exceedances are red/black (depending on colorblindness palette).  
-#### Points and graph size blown up for presentations.  
-herbicides <- c("2,4-D",
-#                 #"2,6-Dichlorobenzamide",
-#                 #"Acetochlor",
-                 "Aminomethylphosphonic acid (AMPA)",
-#                 #"Atrazine",
-#                 #"Bromacil",
-#                 #"Chlorpropham",
-#                 #"Cycloate",
-#                 #"Deisopropylatrazine",
-#                 #"Desethylatrazine",
-#                 #"Dicamba",
-#                 #"Dichlobenil",
-                 "Dimethenamid",
-                 "Diuron",
-#                 #"EPTC",
-#                 #"Fluridone",
-                 "Glyphosate",
-                 "Hexazinone",
-#                 #"Imazapyr",
-                 "Linuron",
-                 "Metolachlor",
-                 "Metribuzin",
-#                 #"Napropamide",
-#                 #"Norflurazon",
-#                 #"Oxyfluorfen",
-                 "Pendimethalin",
-#                 #"Prometon",
-                 "Prometryn",
-#                 #"Pronamide",
-#                 #"Propazine",
-#                 #"Simazine",
-                 "Sulfometuron-methyl",
-#                 #"Tebuthiuron",
-                 "Terbacil"#,
-#                 #"Triclopyr",
-#                 #"Trifluralin"
-                 )
-
- insectFung <- c(   #"4,4´-DDD",
+# 
+# ####For each station, graph all analytes
+# #detections0 <- subset(detections, Station_Number == 36179)
+# 
+# top.herb <- c("2,4-D",
+#               "2,6-Dichlorobenzamide",
+#               "Atrazine",
+#               "Deisopropylatrazine",
+#               "Desethylatrazine",
+#               "Dichlobenil",
+#               "Diuron",
+#               "Simazine")
+# herbicides <- c("2,4-D",
+#                 "2,6-Dichlorobenzamide",
+#                 "Acetochlor",
+#                 "Aminomethylphosphonic acid (AMPA)",
+#                 "Atrazine",
+#                 "Bromacil",
+#                 "Chlorpropham",
+#                 "Cycloate",
+#                 "Deisopropylatrazine",
+#                 "Desethylatrazine",
+#                 "Dicamba",
+#                 "Dichlobenil",
+#                 "Dimethenamid",
+#                 "Diuron",
+#                 "EPTC",
+#                 "Fluridone",
+#                 "Glyphosate",
+#                 "Hexazinone",
+#                 "Imazapyr",
+#                 "Linuron",
+#                 "Metolachlor",
+#                 "Metribuzin",
+#                 "Napropamide",
+#                 "Norflurazon",
+#                 "Oxyfluorfen",
+#                 "Pendimethalin",
+#                 "Prometon",
+#                 "Pronamide",
+#                 "Propazine",
+#                 "Simazine",
+#                 "Sulfometuron-methyl",
+#                 "Tebuthiuron",
+#                 "Terbacil",
+#                 "Triclopyr",
+#                 "Trifluralin")
+# 
+# top.insect <- c( "Carbaryl",
+#                  "Chlorpyrifos",
+#                  "Imidacloprid",
+#                  "Malathion")
+# insecticides <- c( "4,4´-DDD",
 #                    "4,4´-DDE",
 #                    "Acetamiprid",
 #                    "Bifenthrin",
@@ -1066,90 +825,199 @@ herbicides <- c("2,4-D",
 #                    "Carbofuran",
 #                    "Chlorpyrifos",
 #                    "Diazinon",
-                    "Dimethoate",
+#                    "Dimethoate",
 #                    "Ethoprop",
 #                    "Imidacloprid",
 #                    "Malathion",
 #                    "Methiocarb",
 #                    "Methomyl",
 #                    "Oxamyl",
-#                    "Prometon",
-                    "Propiconazole", "Pyraclostrobin"#, "Chlorothalonil"
-                    )#fungicides
-xicides <- analytes     
-xicides <- herbicides     
-xicides <- insectFung     
-
-i <- 37635 #Campbell
-i <- 37636 #Mudd
-station.list <- c(33215, 37637, 37636, 37635)
-
-for(i in station.list){
-  subset.B <- subset(mydata_clean_noV, Station_Number == i)
-  subset.B <- subset(subset.B, is.na(subset.B$RESULT_clean.ug.l) == FALSE)
-  if(sum(subset.B$RESULT_clean.ug.l.subND) > 0){
-    subset.points <- subset(subset.B, Analyte != "Total Solids")
-    if(unique(subset.points$Station_Number) == 37636) subset.points <- subset(subset.points, Analyte != "2,4-D") #(take out the 2,4-D 'outlier')
-    analyte0 <- unique(subset.points$Analyte)
-  
-  #   col.v <- seq(1, 31)
-  col.v <- rep("#999999", 31)
-  pch.v <- c(seq(15, 25), seq(1, 14))  
-  pch.v <- c(seq(15, 25), seq(14, 0))  
-  bkgrd.col  <- "#E5E5E5"
-  exc.col <- "#000000"
-  cbPalette <- c("#999999", "#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-  
-  if(length(subset.points$RESULT_clean)>0){
-    x.min <- min(subset.points$date) #min of subset date
-    x.max <- max(subset.points$date) #max of subset date
-    x.lim <- c("2014/03/25", "2014/11/20")
-    x.lim <- if(length(subset.points$RESULT_clean) < 1){
-      c(x.min, x.max)  
-    }else{
-      c(x.min-5, x.max+5) ####define the data domain for graph
-    }
-    y.min <- 0
-    y.max <- max(subset.points$RESULT_clean.ug.l) #max of data for graph
-    #    if(ii == "Chlorpyrifos") y.max <- 0.083 #exception to accomodate chlorpyrifos secondary WQS
-    y.lim <- c(y.min,y.max + (0.1*y.max)) ####define the data range
-    x.lab <- ""
-    y.lab <- "ug/L"
-    title <- paste0(unique(subset.points$Station_Description), " 2014")
-    if(unique(subset.points$Station_Number) == 37636) {
-      title <- paste0(unique(subset.points$Station_Description), " 2014", "\n* 2,4-D detected at 5.1 ug/L on 5/7/14")
-    }
-    file.name.ts <- paste0(unique(subset.points$Station_Description), " 2014", "_all analytes", "_timeseries.png")
-    
-    png(filename=file.name.ts ,width = 950, height = 700) ####create a png with the station name in the filepath specified above
-    par(xpd=NA,oma=c(6,0,0,0), mar=c(6.1,4.1,4.1,2.1)) 
-    plot(subset.points$date, subset.points$RESULT_clean.ug.l,  pch=NA, xlim=x.lim, ylim=y.lim, xlab=x.lab, ylab=y.lab, cex.axis=1.2, cex.lab=1.2, bty="L", log=log.scale, main=title, font.main=12) ####plot the outline of the points  
-    #xaxt = 'n',
-    #axis(1, at = seq(x.min-5, x.max+5, by = 10))
-    for(p in 1:(length(xicides))){
-      subset.points.i <- subset(subset.points, Analyte == xicides[p])
-      points(subset.points.i$date, subset.points.i$RESULT_clean.ug.l, col=col.v[p], pch=pch.v[p], bg=bkgrd.col, cex=2.2)
-      exceeds.points.i <- subset.points.i[subset.points.i$final_digress == 1,]   
-      points(exceeds.points.i$date, exceeds.points.i$RESULT_clean.ug.l, col=exc.col, bg=exc.col, pch=pch.v[p], cex=2.2) ####plot the exceedances
-    }
-       
-    par(fig = c(0, 1, 0, 1), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE)
-    plot(0, 0, type = "n", bty = "n", xaxt = "n", yaxt = "n")
-    
-    ###legend for displaying on charts
-           legend("bottom", 
-                  xpd=TRUE, 
-                  inset=c(0, 0), 
-                     legend=xicides, 
-                     col= col.v, 
-                     pch=pch.v, 
-                     pt.bg=bkgrd.col,
-                     ncol=3,
-                     xjust=0, yjust=0, box.lty=0, cex=1.4, pt.cex=1.4, horiz=FALSE, 
-              )
-    
-    
-    dev.off() ####write the .png
-  }else{print(paste0("non-detect_"))}
-}
-}
+#                    "Prometon")
+# 
+# 
+# fungicides <- c("Propiconazole", "Pyraclostrobin", "Chlorothalonil")
+# 
+# wood.preservative <- "Pentachlorophenol"
+# PCP <- "DEET"
+# 
+# xicides <- list(top.herb, top.insect, fungicides)     
+# 
+# for(c in xicides){
+#   subset.points <- mydata_clean_noV[mydata_clean_noV$Analyte %in% c,]
+#   #subset.points <- subset(subset.points, Station_Number == i)
+#   subset.points <- subset.points[!is.na(subset.points$RESULT_clean.ug.l),]
+#   subset.points <- subset(subset.points, Analyte != "Total Solids")
+#   print(c)
+#   if(length(subset.points$RESULT_clean)>0){
+#     
+#     subset.points[is.na(subset.points$final_digress),"final_digress"] <- 0
+#     subset.points[subset.points$final_digress == 0,"final_digress"] <- paste0("less than criteria or \n no criteria available")
+#     subset.points[subset.points$final_digress == 1,"final_digress"] <- "more than criteria"
+#     
+#     a <- ggplot(subset.points, aes(date, RESULT_clean.ug.l))
+#     a <- a + aes(shape = (final_digress)) +
+#       geom_point(aes(colour = Analyte), size = 4) +
+#       geom_point(colour="grey90", size = 1.5)
+#     if(c == top.herb) title <- "Selected common herbicides"
+#     if(c == top.insect) title <- "Selected common insecticides"
+#     if(c == fungicides) title <- "Selected common fungicides"
+#     
+#     a <- a + xlab("2014") + ylab("ug/L") + ggtitle (title)
+#     a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
+#     a <- a + scale_x_date(breaks=unique(subset.points$date), labels=format(unique(subset.points$date), format="%m/%d"))
+#     a <- a + coord_cartesian(xlim=c(min(subset.points$date)-1, max(subset.points$date)+1)) #add a day to beginning and end
+#     #a <- a + ylim(c(0, max(subset.points$RESULT_clean.ug.l.subND*1.8))) #set the y range from zero to some multiplier of the max result to increase the head space
+#     a <- a + theme(axis.text.x  = element_text(angle=90, vjust=0.5, color="black", size=8))
+#     a <- a + theme(axis.text.y  = element_text(color="black", size=10))
+#     #a <- a + guides(shape = guide_legend(ncol = 2)) #legend in two columns
+#     #a <- a + guides(shape = guide_legend(ncol = 2))
+#     #a <- a + theme(legend.position="bottom")
+#     #a <- a + theme(legend.direction="vertical")
+#     #a <- a + theme(legend.text=element_text(size=10))
+#     a <- a + theme(legend.title=element_blank()) #remove title from legend
+#     a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
+#                                          x = 0, hjust = -0.1, vjust=0.1,
+#                                          gp = gpar(fontface = "italic", fontsize = 10))) 
+#     ggsave(filename = paste0(outpath.plot.points, title, "_2014_savedon", Sys.Date(),".jpg"), plot = a, scale=1.5)
+#     
+#   }else{print(paste0("non-detect_", c))}
+# }
+# 
+# ##################################################################################
+# 
+# #### For each station, graph all analytes
+# #### Change the symbols to represent each analyte.  Exceedances are red/black (depending on colorblindness palette).  
+# #### Points and graph size blown up for presentations.  
+# herbicides <- c("2,4-D",
+# #                 #"2,6-Dichlorobenzamide",
+# #                 #"Acetochlor",
+#                  "Aminomethylphosphonic acid (AMPA)",
+# #                 #"Atrazine",
+# #                 #"Bromacil",
+# #                 #"Chlorpropham",
+# #                 #"Cycloate",
+# #                 #"Deisopropylatrazine",
+# #                 #"Desethylatrazine",
+# #                 #"Dicamba",
+# #                 #"Dichlobenil",
+#                  "Dimethenamid",
+#                  "Diuron",
+# #                 #"EPTC",
+# #                 #"Fluridone",
+#                  "Glyphosate",
+#                  "Hexazinone",
+# #                 #"Imazapyr",
+#                  "Linuron",
+#                  "Metolachlor",
+#                  "Metribuzin",
+# #                 #"Napropamide",
+# #                 #"Norflurazon",
+# #                 #"Oxyfluorfen",
+#                  "Pendimethalin",
+# #                 #"Prometon",
+#                  "Prometryn",
+# #                 #"Pronamide",
+# #                 #"Propazine",
+# #                 #"Simazine",
+#                  "Sulfometuron-methyl",
+# #                 #"Tebuthiuron",
+#                  "Terbacil"#,
+# #                 #"Triclopyr",
+# #                 #"Trifluralin"
+#                  )
+# 
+#  insectFung <- c(   #"4,4´-DDD",
+# #                    "4,4´-DDE",
+# #                    "Acetamiprid",
+# #                    "Bifenthrin",
+# #                    "Carbaryl",
+# #                    "Carbofuran",
+# #                    "Chlorpyrifos",
+# #                    "Diazinon",
+#                     "Dimethoate",
+# #                    "Ethoprop",
+# #                    "Imidacloprid",
+# #                    "Malathion",
+# #                    "Methiocarb",
+# #                    "Methomyl",
+# #                    "Oxamyl",
+# #                    "Prometon",
+#                     "Propiconazole", "Pyraclostrobin"#, "Chlorothalonil"
+#                     )#fungicides
+# xicides <- analytes     
+# xicides <- herbicides     
+# xicides <- insectFung     
+# 
+# i <- 37635 #Campbell
+# i <- 37636 #Mudd
+# station.list <- c(33215, 37637, 37636, 37635)
+# 
+# for(i in station.list){
+#   subset.B <- subset(mydata_clean_noV, Station_Number == i)
+#   subset.B <- subset(subset.B, is.na(subset.B$RESULT_clean.ug.l) == FALSE)
+#   if(sum(subset.B$RESULT_clean.ug.l.subND) > 0){
+#     subset.points <- subset(subset.B, Analyte != "Total Solids")
+#     if(unique(subset.points$Station_Number) == 37636) subset.points <- subset(subset.points, Analyte != "2,4-D") #(take out the 2,4-D 'outlier')
+#     analyte0 <- unique(subset.points$Analyte)
+#   
+#   #   col.v <- seq(1, 31)
+#   col.v <- rep("#999999", 31)
+#   pch.v <- c(seq(15, 25), seq(1, 14))  
+#   pch.v <- c(seq(15, 25), seq(14, 0))  
+#   bkgrd.col  <- "#E5E5E5"
+#   exc.col <- "#000000"
+#   cbPalette <- c("#999999", "#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+#   
+#   if(length(subset.points$RESULT_clean)>0){
+#     x.min <- min(subset.points$date) #min of subset date
+#     x.max <- max(subset.points$date) #max of subset date
+#     x.lim <- c("2014/03/25", "2014/11/20")
+#     x.lim <- if(length(subset.points$RESULT_clean) < 1){
+#       c(x.min, x.max)  
+#     }else{
+#       c(x.min-5, x.max+5) ####define the data domain for graph
+#     }
+#     y.min <- 0
+#     y.max <- max(subset.points$RESULT_clean.ug.l) #max of data for graph
+#     #    if(ii == "Chlorpyrifos") y.max <- 0.083 #exception to accomodate chlorpyrifos secondary WQS
+#     y.lim <- c(y.min,y.max + (0.1*y.max)) ####define the data range
+#     x.lab <- ""
+#     y.lab <- "ug/L"
+#     title <- paste0(unique(subset.points$Station_Description), " 2014")
+#     if(unique(subset.points$Station_Number) == 37636) {
+#       title <- paste0(unique(subset.points$Station_Description), " 2014", "\n* 2,4-D detected at 5.1 ug/L on 5/7/14")
+#     }
+#     file.name.ts <- paste0(unique(subset.points$Station_Description), " 2014", "_all analytes", "_timeseries.png")
+#     
+#     png(filename=file.name.ts ,width = 950, height = 700) ####create a png with the station name in the filepath specified above
+#     par(xpd=NA,oma=c(6,0,0,0), mar=c(6.1,4.1,4.1,2.1)) 
+#     plot(subset.points$date, subset.points$RESULT_clean.ug.l,  pch=NA, xlim=x.lim, ylim=y.lim, xlab=x.lab, ylab=y.lab, cex.axis=1.2, cex.lab=1.2, bty="L", log=log.scale, main=title, font.main=12) ####plot the outline of the points  
+#     #xaxt = 'n',
+#     #axis(1, at = seq(x.min-5, x.max+5, by = 10))
+#     for(p in 1:(length(xicides))){
+#       subset.points.i <- subset(subset.points, Analyte == xicides[p])
+#       points(subset.points.i$date, subset.points.i$RESULT_clean.ug.l, col=col.v[p], pch=pch.v[p], bg=bkgrd.col, cex=2.2)
+#       exceeds.points.i <- subset.points.i[subset.points.i$final_digress == 1,]   
+#       points(exceeds.points.i$date, exceeds.points.i$RESULT_clean.ug.l, col=exc.col, bg=exc.col, pch=pch.v[p], cex=2.2) ####plot the exceedances
+#     }
+#        
+#     par(fig = c(0, 1, 0, 1), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE)
+#     plot(0, 0, type = "n", bty = "n", xaxt = "n", yaxt = "n")
+#     
+#     ###legend for displaying on charts
+#            legend("bottom", 
+#                   xpd=TRUE, 
+#                   inset=c(0, 0), 
+#                      legend=xicides, 
+#                      col= col.v, 
+#                      pch=pch.v, 
+#                      pt.bg=bkgrd.col,
+#                      ncol=3,
+#                      xjust=0, yjust=0, box.lty=0, cex=1.4, pt.cex=1.4, horiz=FALSE, 
+#               )
+#     
+#     
+#     dev.off() ####write the .png
+#   }else{print(paste0("non-detect_"))}
+# }
+# }

@@ -72,7 +72,7 @@ for(i in 1:length(myQuery)) {
   rm(data)
 }
 
-unique(mydata$Work_Order)
+sort(unique(mydata$Work_Order))
 unique(mydata$Project)
 cd <- subset(mydata, Result == "Cancelled")
 vd <- subset(mydata, Result == "Void")
@@ -128,11 +128,20 @@ mydata_clean <- data.frame(Basin, Station_Number, Station_Description, date, Ana
 mydata_clean$RESULT_clean.ug.l <- as.numeric(mydata_clean$RESULT_clean.ug.l)
 mydata_clean$RESULT_clean.ug.l.subND <- as.numeric(mydata_clean$RESULT_clean.ug.l.subND)
 
+#Deleting the 2nd column [2C] tag from ELEMENT
+mydata_clean$Analyte <- gsub(" \\[2C\\]$","",mydata_clean$Analyte)
+
 ####Subset and set aside the field duplicates ----
 unique(mydata_clean$SampleType) 
 
+####deleting "Other::Ot" from SampleType (1/20/15 JC: right now, the Others are associated with Project/Basin"Lab Spike POCIS/SPMD")
+mydata_clean <- mydata_clean[mydata_clean$SampleType != "Other::Ot",]
+
 FD <- subset(mydata_clean, SampleType %in% c("Field Duplicate", "Field Duplicate::FD") & RESULT_clean != "NA") #dataframe of all detected FDs
-unique(FD$RESULT_clean)
+#unique(FD$RESULT_clean)
+
+#####Transfer blanks are all NDs?
+TB <- mydata_clean[mydata_clean$Station_Number == 10000,]
 
 ####Make new subset without the Voids, Field Dupes and Blanks.
 sort(unique(mydata_clean$RESULT)) #verify that the names in quotes are the names being used in the datatable
@@ -176,8 +185,7 @@ mydata_clean <- rbind(df,mydata_clean)
 ####Subset out not needed data
 station.list <- unique(mydata_clean$Station_Number) #list of stations
 unique(mydata_clean$Analyte) #list of lab analytes
-#Deleting the weird [2C] tag from ELEMENT
-mydata_clean$Analyte <- gsub(" \\[2C\\]$","",mydata_clean$Analyte)
+
 
 detections <- subset(mydata_clean, RESULT != "ND" ) #subset out the NDs 
 #detections <- subset(mydata_clean, is.na(RESULT_clean) == FALSE ) #subset out the NDs 
@@ -228,8 +236,9 @@ min.criteria <- rename(min.criteria , replace = c('Pollutant' = 'criteria.Pollut
 criteria.pollutant.list <- unique(min.criteria$criteria.Pollutant)
 Has.min.criteria <- analytes %in% criteria.pollutant.list #Caution!!"analytes" comes from the detections subset only - so NOT all the available criteria will be populated into later datasets!! It WILL skip mismatched (between LEAD analyte name and criteria name) nondetects!!
 check <- data.frame(Has.min.criteria, analytes)
-check  #no minimum criteria/benchmarks exist for Total Solids or DEET or Pronamide or 2,6-BAM, Etridiazole, Mexacarbate
-#end recursion
+check  #no minimum criteria/benchmarks exist for Total Solids or DEET or Pronamide or 2,6-BAM, Etridiazole, Mexacarbate, Triadimefon, 3,5-Dichlorobenzoic acid
+#end recursion 
+min.criteria[min.criteria$criteria.Pollutant == "4,4`-DDE", "criteria.Pollutant"] <- "4,4´-DDE" #example for substitutions (first is old name in criteria list, second is new analyte name)
 min.criteria[min.criteria$criteria.Pollutant == "aminomethyl phosphoric acid (AMPA) Glyphosate degradate", "criteria.Pollutant"] <- "Aminomethylphosphonic acid (AMPA)" #example for substitutions (first is old name in criteria list, second is new analyte name)
 min.criteria[min.criteria$criteria.Pollutant == '2,6-Dichlorobenzamide (BAM)','criteria.Pollutant'] <- "2,6-Dichlorobenzamide" #example for substitutions (first is old name in criteria list, second is new analyte name)
 min.criteria[min.criteria$criteria.Pollutant == 'Endosulfan Sulfate','criteria.Pollutant'] <- "Endosulfan sulfate" #example for substitutions (first is old name in criteria list, second is new analyte name)
@@ -269,6 +278,8 @@ for(i in 1:nrow(min.criteria)){
   }
 }
 #df[is.na(df$col),’col’] <- 0
+min.criteria[min.criteria$criteria.Pollutant=="4,4´-DDE", "label"] <- paste0("\nlowest DEQ WQS= 0.001 ug/L\n*criterion applies to DDT and its metabolites")
+min.criteria[min.criteria$criteria.Pollutant=="4,4´-DDD", "label"] <- paste0("\nlowest DEQ WQS= 0.001 ug/L\n*criterion applies to DDT and its metabolites")
 min.criteria[min.criteria$criteria.Pollutant=="Atrazine", "label"] <- paste0("\nEPA benchmark = 1 ug/L\nproposed EPA benchmark = 0.001 ug/L")
 min.criteria[min.criteria$criteria.Pollutant=="Simazine", "label"] <- paste0("\nEPA benchmark = 36 ug/L\nproposed EPA benchmark = 2.24 ug/L")
 ######################################
@@ -353,7 +364,7 @@ for(i in 1:nrow(mydata_clean_noV)){
 
 ####check that these analytes truly do NOT have a benchmark value
 aaa <- (mydata_clean_noV[mydata_clean_noV$exceed.type == "no benchmark available",])
-unique(aaa$Analyte) #confirmed, no criteria for TS, and DEET, 2,6-BAM, pronamide, 44DDD, 44DDE, chlorpropham, acetamiprid, mexacarbate, etridiazole, Triadimefon
+unique(aaa$Analyte) #confirmed, no criteria for TS, and DEET, 2,6-BAM, pronamide, chlorpropham, acetamiprid, mexacarbate, etridiazole, Triadimefon
 #changed criteria for 2,4-D
 
 #rm(mydata)
@@ -389,8 +400,15 @@ for(i in 1:nrow(mydata_clean_noV)){
 }
 
 #subset the Basin "Hood River POCIS/SPMD" and assign new name
-#df[is.na(df$col),"col"] <- 0
 mydata_clean_noV[mydata_clean_noV$Basin == "Hood River POCIS/SPMD", "Basin"] <- "Hood River POCIS_SPMD"
+
+#change Clackamas basin station names, because too long on the graphs
+#df[is.na(df$col),"col"] <- 0
+mydata_clean_noV[mydata_clean_noV$Station_Description == "North Fork Deep Creek at Hwy 212 (upstream of Boring)", "Station_Description"] <- "North Fork Deep Creek at Hwy 212"
+mydata_clean_noV[mydata_clean_noV$Station_Description == "Rock Creek at 172nd, Stony Brook Court", "Station_Description"] <- "Rock Creek at 172nd"
+mydata_clean_noV[mydata_clean_noV$Station_Description == "Noyer Creek at Hwy 212, St. Paul Lutheran Church (North Fork, Deep Creek, Clackamas)", "Station_Description"] <- "Noyer Creek at Hwy 212"
+mydata_clean_noV[mydata_clean_noV$Station_Description == "Sieben Creek at Hwy 212 (Clackamas)" , "Station_Description"] <- "Sieben Creek at Hwy 212" 
+
 
 ###########################
 ##########################
@@ -677,7 +695,9 @@ Average <- mean(sub.B$RESULT_clean.ug.l.subND)
 Max <- max(sub.B$RESULT_clean.ug.l.subND)
 
 
+##################################
 
+####
 
 
 
@@ -702,8 +722,10 @@ ii <- "Total Solids"
 B <- "Amazon"
 ii <- "Chlorpyrifos"
 B <- "Yamhill"
+B <- "Middle Rogue"
 ii <- "Bifenthrin"
 ii <- "Conductivity"
+ii <- "4,4´-DDE"
 
 
 #20141023: Delete Walla Walla at the Frog results (because no detections) #32012
@@ -968,7 +990,7 @@ herbicides <- c("2,4-D",
 #                 #"Acetochlor",
                  "Aminomethylphosphonic acid (AMPA)",
 #                 #"Atrazine",
-#                 #"Bromacil",
+                 "Bromacil",
 #                 #"Chlorpropham",
 #                 #"Cycloate",
 #                 #"Deisopropylatrazine",
@@ -1014,14 +1036,16 @@ herbicides <- c("2,4-D",
 #                    "Imidacloprid",
 #                    "Malathion",
 #                    "Methiocarb",
-#                    "Methomyl",
+                    "Methomyl",
 #                    "Oxamyl",
 #                    "Prometon",
                     "Propiconazole", "Pyraclostrobin"#, "Chlorothalonil"
                     )#fungicides
 xicides <- analytes     
 xicides <- herbicides     
-xicides <- insectFung     
+filenameicide <- "Herbicides"
+#xicides <- insectFung     
+#filenameicide <- "Insecticides and Fungicides"
 
 i <- 37635 #Campbell
 i <- 37636 #Mudd
@@ -1033,12 +1057,13 @@ for(i in station.list){
   if(sum(subset.B$RESULT_clean.ug.l.subND) > 0){
     subset.points <- subset(subset.B, Analyte != "Total Solids")
     if(unique(subset.points$Station_Number) == 37636) subset.points <- subset(subset.points, Analyte != "2,4-D") #(take out the 2,4-D 'outlier')
-    analyte0 <- unique(subset.points$Analyte)
+    subset.points <- subset.points[subset.points$Analyte %in% xicides,]    
   
   #   col.v <- seq(1, 31)
   col.v <- rep("#999999", 31)
-  pch.v <- c(seq(15, 25), seq(1, 14))  
-  pch.v <- c(seq(15, 25), seq(14, 0))  
+  pch.v <- c(seq(21, 25), seq(15, 20), seq(0, 14))  
+  #pch.v <- c(seq(15, 25), seq(14, 0))  
+  #pch.v <- c(seq(0, 14), seq(15, 25))  
   bkgrd.col  <- "#E5E5E5"
   exc.col <- "#000000"
   cbPalette <- c("#999999", "#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -1055,14 +1080,14 @@ for(i in station.list){
     y.min <- 0
     y.max <- max(subset.points$RESULT_clean.ug.l) #max of data for graph
     #    if(ii == "Chlorpyrifos") y.max <- 0.083 #exception to accomodate chlorpyrifos secondary WQS
-    y.lim <- c(y.min,y.max + (0.1*y.max)) ####define the data range
+    y.lim <- c(y.min,y.max + (0.8*y.max)) ####define the data range
     x.lab <- ""
     y.lab <- "ug/L"
-    title <- paste0(unique(subset.points$Station_Description), " 2014")
+    title <- paste0(unique(subset.points$Station_Description), "\n", filenameicide, " 2014")
     if(unique(subset.points$Station_Number) == 37636) {
-      title <- paste0(unique(subset.points$Station_Description), " 2014", "\n* 2,4-D detected at 5.1 ug/L on 5/7/14")
+      title <- paste0(unique(subset.points$Station_Description), "\n", filenameicide, " 2014", "\n* 2,4-D detected at 5.1 ug/L on 5/7/14") #title for herbicides
     }
-    file.name.ts <- paste0(unique(subset.points$Station_Description), " 2014", "_all analytes", "_timeseries.png")
+    file.name.ts <- paste0(unique(subset.points$Station_Description), " 2014", filenameicide, "_timeseries.png")
     
     png(filename=file.name.ts ,width = 950, height = 700) ####create a png with the station name in the filepath specified above
     par(xpd=NA,oma=c(6,0,0,0), mar=c(6.1,4.1,4.1,2.1)) 

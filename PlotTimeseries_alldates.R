@@ -3,10 +3,45 @@
 #authorship
 ####
 
+library(stringr)
+library(plyr) # New addition to the preamble
+
 ####Run "P:\Rscripts\Criteria\ToxicsCriteriaPSP.R" first.
 #load("P:\\Rscripts\\Criteria\\2014-12-08\\min.Aquatic.Life.criteria.values_savedon2014-12-08.Rdata")
 outpath.criteria <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), "\\", sep="") 
 load(paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".Rdata"))
+
+#### Load LASAR file ####
+lasar <- read.csv('//deqhq1/psp/rscripts/datapullfromlead/psp2005to2011compile20140121Version2.csv')
+
+#Remove unit from parameter.name
+lasar$PARAMETER.NAME <- str_trim(gsub('\\(.*','',lasar$PARAMETER.NAME))
+
+#Convert to consistent Project names
+revalue_vector <- c()
+for (i in 1:length(levels(lasar$Sampling.Subproject.Name))) {
+  revalue_vector <- c(revalue_vector, strsplit(levels(lasar$Sampling.Subproject.Name), " P")[[i]][1])
+  names(revalue_vector)[i] <- levels(lasar$Sampling.Subproject.Name)[i]
+}
+lasar$Sampling.Subproject.Name <- revalue(lasar$Sampling.Subproject.Name, replace = revalue_vector)
+levels(lasar$Sampling.Subproject.Name) <- gsub(' Basin','',levels(lasar$Sampling.Subproject.Name))
+
+#Convert lasar datetime
+lasar$Sample.Date.Time <- as.Date(strptime(lasar$Sample.Date.Time, format="%m/%d/%Y")) 
+#lasar$Sample.Date.Time <- as.POSIXct(strptime(lasar$Sample.Date.Time, format = '%m/%d/%Y %H:%M'))
+
+#Match the Element column names Basin, Station_Number, Station_Description, date, Analyte, RESULT, MRL, Units, SampleType, RESULT_clean, "RESULT_clean.ug.l"=NA, "RESULT_clean.ug.l.subND"=NA
+lasar$Client <- 'Pesticide Stewardship Partnerships'
+lasar <- rename(lasar, c('Sampling.Event.Number' = 'Work_Order', 
+                         'Sampling.Subproject.Name' = 'Project',
+                         'Station.Identifier' = 'Station_ID',
+                         'Station.Description' = 'Station_Description',
+                         'Sample.Date.Time' = 'Sampled',
+                         'PARAMETER.NAME' = 'OrigAnalyte',
+                         'Limit.of.Detection' = 'MRL',
+                         'RESULT..LOQ.' = 'Result',
+                         'Original_UNITS' = 'Units',
+                         'QA.QC.Type' = 'SampleType'))
 
 require(plyr)
 
@@ -84,6 +119,9 @@ if(new.data.n > old.data.n) print("NEW DATA! NEW DATA! NEW DATA! NEW DATA! NEW D
 ####
 
 library(stringr)
+mydata <- rbind(mydata[,c('Project', 'Station_ID', 'Station_Description', 'Sampled', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType')], 
+                lasar[,c('Project', 'Station_ID', 'Station_Description', 'Sampled', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType')])
+
 Analyte <- mydata$OrigAnalyte
 Station_Description <- mydata$Station_Description
 Station_Number <- as.numeric(mydata$Station_ID)
@@ -117,7 +155,8 @@ report
 
 ####convert dates from characters to dates
 #date <- as.Date(strptime(mydata$Sampled, format="%d-%b-%y %H:%M:%s")) #still lost the hours/minutes
-date <- as.Date(strptime(mydata$Sampled_Date, format="%d %b %Y")) 
+#date <- as.Date(strptime(mydata$Sampled_Date, format="%d %b %Y")) 
+date <- as.Date(mydata$Sampled)
 
 MRL <- mydata$MRL
 
@@ -132,8 +171,10 @@ unique(mydata_clean$SampleType)
 ####deleting "Other::Ot" from SampleType (1/20/15 JC: right now, the Others are associated with Project/Basin"Lab Spike POCIS/SPMD")
 mydata_clean <- mydata_clean[mydata_clean$SampleType != "Other::Ot",]
 
-FD <- subset(mydata_clean, SampleType %in% c("Field Duplicate", "Field Duplicate::FD") & RESULT_clean != "NA") #dataframe of all detected FDs
+FD <- subset(mydata_clean, SampleType %in% c("Field Duplicate", "Field Duplicate::FD", 'Sample - Field Duplicate') & RESULT_clean != "NA") #dataframe of all detected FDs
 unique(FD$RESULT_clean)
+
+######## PICK UP HERE ########
 
 ####Make new subset without the Voids, Field Dupes and Blanks.
 sort(unique(mydata_clean$RESULT)) #verify that the names in quotes are the names being used in the datatable
@@ -379,7 +420,7 @@ mydata_clean_noV[mydata_clean_noV$Station_Description == "Sieben Creek at Hwy 21
 ####Output a summary table 
 Det.freq.table <- data.frame("Basin"=NA,
                              "Station"=NA, 
-                             "Station.Description"=NA, 
+                             "Station.Description"=NA,
                              "Parameter"=NA,
                              "Median"=NA,
                              "Average"=NA, 
@@ -399,10 +440,34 @@ ii <- "Chlorpyrifos"
 ii <- "Atrazine"
 ii <- "Hexazinone"
 ii <- "Malathion"
+
+#### Adding year column to mydata_clean_noV
+mydata_clean_noV$year<-as.integer(substr(mydata_clean_noV$date,1,4))
+
+#### Setting up lists by year
+mydata_clean_noV_list<-list()
+
+for (y in unique(mydata_clean_noV$year)){
+  mydata_clean_noV_list[[y]]<-subset(mydata_clean_noV,year == y)
+}
+
+Det.freq.table_list<-list()
+
+for (y in unique(mydata_clean_noV$year)){
+  Det.freq.table_list[[y]]<-Det.freq.table
+}
+
 ####Add the Basin loop and Analyte loop wrapper
-for(B in unique(mydata_clean_noV$Basin)){
-  subset.pointsB <- mydata_clean_noV[mydata_clean_noV$Basin == B,]
+#### NEW (Old is below); I have not got this to work yet
+#### Idea is to subset the mydata_clean_noV dataframe into a list composed of
+#### individual years, run the loop, and then compile the lists into one dataframe
+#### There's probably a cleaner way to do this, but it should work.
+
+for (y in unique(mydata_clean_noV$year)){
+for(B in unique(mydata_clean_noV_list[[y]]$Basin)){
+  subset.pointsB <- mydata_clean_noV_list[[y]][mydata_clean_noV_list[[y]]$Basin == B,]
   print(B)
+
   for(ii in analytes){
     subset.points0 <- subset(subset.pointsB, Analyte == ii)#aaa
     print(ii)
@@ -420,26 +485,26 @@ for(B in unique(mydata_clean_noV$Basin)){
     if(B=="Walla Walla"){
       subset.points <- subset.points0[subset.points0$Station_Number %in% c(32010, 33083, 33084), ] 
       if(length(subset.points$RESULT_clean)>0){
-      detects.n <- nrow(subset(subset.points, is.na(RESULT_clean) == FALSE))
-      stn.n <- nrow(subset.points)#ddd
-      percent.det.freq <- (detects.n/stn.n)*100
-      matchup <- match(min(subset.points$Analyte), min.criteria$criteria.Pollutant)
-      criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
-      
-      df1 <- data.frame("Basin"=B,
-                        "Station"="Walla Walla distributaries", 
-                        "Station.Description"="Walla Walla distributaries", 
-                        "Parameter"=min(subset.points$Analyte),
-                        "Median"=median(subset.points$RESULT_clean.ug.l, na.rm=TRUE),
-                        "Average"=mean(subset.points$RESULT_clean.ug.l.subND), 
-                        "Max"=max(subset.points$RESULT_clean.ug.l.subND), 
-                        "criteria"=criteria, 
-                        "ALR"="Not Calculated", 
-                        "N Samples" = stn.n, 
-                        "percent.det.freq"=percent.det.freq, 
-                        "exceed.type"="Not Calculated", 
-                        stringsAsFactors=FALSE)
-      Det.freq.table <- rbind(df1, Det.freq.table)
+        detects.n <- nrow(subset(subset.points, is.na(RESULT_clean) == FALSE))
+        stn.n <- nrow(subset.points)#ddd
+        percent.det.freq <- (detects.n/stn.n)*100
+        matchup <- match(min(subset.points$Analyte), min.criteria$criteria.Pollutant)
+        criteria <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[matchup])
+        
+        df1 <- data.frame("Basin"=B,
+                          "Station"="Walla Walla distributaries", 
+                          "Station.Description"="Walla Walla distributaries", 
+                          "Parameter"=min(subset.points$Analyte),
+                          "Median"=median(subset.points$RESULT_clean.ug.l, na.rm=TRUE),
+                          "Average"=mean(subset.points$RESULT_clean.ug.l.subND), 
+                          "Max"=max(subset.points$RESULT_clean.ug.l.subND), 
+                          "criteria"=criteria, 
+                          "ALR"="Not Calculated", 
+                          "N Samples" = stn.n, 
+                          "percent.det.freq"=percent.det.freq, 
+                          "exceed.type"="Not Calculated", 
+                          stringsAsFactors=FALSE)
+        Det.freq.table_list[[y]] <- rbind(df1, Det.freq.table_list[[y]])
       }
     }
     
@@ -475,7 +540,7 @@ for(B in unique(mydata_clean_noV$Basin)){
                           "percent.det.freq"=percent.det.freq, 
                           "exceed.type"="Not Calculated", 
                           stringsAsFactors=FALSE)
-        Det.freq.table <- rbind(df1, Det.freq.table)
+        Det.freq.table_list[[y]] <- rbind(df1, Det.freq.table_list[[y]])
       }
     }
     
@@ -512,12 +577,12 @@ for(B in unique(mydata_clean_noV$Basin)){
                         "percent.det.freq"=percent.det.freq, 
                         "exceed.type"="Total Detection Freq", 
                         stringsAsFactors=FALSE)
-      Det.freq.table <- rbind(df1, Det.freq.table)
+      Det.freq.table_list[[y]] <- rbind(df1, Det.freq.table_list[[y]])
     }
     
     ####One (By Basin and Analyte and Exceedance Type)
     n.tot <- nrow(subset.points0)#count by Basin and Analyte #bbb
-    for(iii in unique(mydata_clean_noV$exceed.type)){
+    for(iii in unique(mydata_clean_noV_list[[y]]$exceed.type)){
       subset.points <- subset(subset.points0, exceed.type == iii)#ccc
       if(length(subset.points$RESULT_clean)>0){
         
@@ -548,17 +613,33 @@ for(B in unique(mydata_clean_noV$Basin)){
                           "percent.det.freq"=percent.det.freq, 
                           "exceed.type"=iii, 
                           stringsAsFactors=FALSE)
-        Det.freq.table <- rbind(df1, Det.freq.table)
+        Det.freq.table_list[[y]] <- rbind(df1, Det.freq.table_list[[y]])
       }
     }
   }
 }
+}
+
+### Adding a column for year
+for (y in unique(mydata_clean_noV$year)){
+  Det.freq.table_list[[y]]$Year<-y
+}
+
+### Unlisting to dataframe with plyr package
+Det.freq.table.new<-ldply(Det.freq.table_list,data.frame)
+
+head(Det.freq.table.new)
+tail(Det.freq.table.new)
+
+### STOPPED HERE; note that you will have to change the Det.freq.table to Det.freq.table.new below
+
+##### Clean up files----
 
 Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
 
-write.csv(Det.freq.table, paste0(outpath.plot.points,"State_2014_detection_frequencies_savedon", Sys.Date(),".csv")) 
+write.csv(Det.freq.table, paste0(outpath.plot.points,"State_alldates_detection_frequencies_savedon", Sys.Date(),".csv")) 
 
-write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_2014_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
 
 
 ###########################

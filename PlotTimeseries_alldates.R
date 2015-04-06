@@ -18,13 +18,17 @@ lasar <- read.csv('//deqhq1/psp/rscripts/datapullfromlead/psp2005to2011compile20
 lasar$PARAMETER.NAME <- str_trim(gsub('\\(.*','',lasar$PARAMETER.NAME))
 
 #Convert to consistent Project names
-revalue_vector <- c()
-for (i in 1:length(levels(lasar$Sampling.Subproject.Name))) {
-  revalue_vector <- c(revalue_vector, strsplit(levels(lasar$Sampling.Subproject.Name), " P")[[i]][1])
-  names(revalue_vector)[i] <- levels(lasar$Sampling.Subproject.Name)[i]
-}
-lasar$Sampling.Subproject.Name <- revalue(lasar$Sampling.Subproject.Name, replace = revalue_vector)
-levels(lasar$Sampling.Subproject.Name) <- gsub(' Basin','',levels(lasar$Sampling.Subproject.Name))
+# Project Names aren't matching with the correct basin
+# revalue_vector <- c()
+# for (i in 1:length(levels(lasar$Sampling.Subproject.Name))) {
+#   revalue_vector <- c(revalue_vector, strsplit(levels(lasar$Sampling.Subproject.Name), " P")[[i]][1])
+#   names(revalue_vector)[i] <- levels(lasar$Sampling.Subproject.Name)[i]
+# }
+# lasar$Sampling.Subproject.Name <- revalue(lasar$Sampling.Subproject.Name, replace = revalue_vector)
+# levels(lasar$Sampling.Subproject.Name) <- gsub(' Basin','',levels(lasar$Sampling.Subproject.Name))
+
+
+
 
 #Convert lasar datetime
 lasar$Sample.Date.Time <- as.Date(strptime(lasar$Sample.Date.Time, format="%m/%d/%Y")) 
@@ -42,6 +46,46 @@ lasar <- rename(lasar, c('Sampling.Event.Number' = 'Work_Order',
                          'RESULT..LOQ.' = 'Result',
                          'Original_UNITS' = 'Units',
                          'QA.QC.Type' = 'SampleType'))
+lasar <- lasar[,c("Work_Order", 
+                  "Project", 
+                  "Station_ID", 
+                  "Station_Description", 
+                  "Sampled", 
+                  "OrigAnalyte", 
+                  "MRL", 
+                  "Result", 
+                  "Units", 
+                  "SampleType")]
+
+# #Trimming lasar file by cutting out parameters
+# lasar <- lasar[lasar$OrigAnalyte != "Percent Saturation Field Dissolved Oxygen",]
+# lasar <- lasar[lasar$OrigAnalyte != "Field Temperature",]
+# lasar <- lasar[lasar$OrigAnalyte != "Chlorophyll a",]
+# lasar <- lasar[lasar$OrigAnalyte != "Pheophytin a",]
+# lasar <- lasar[lasar$OrigAnalyte != "Conductivity",]
+# lasar <- lasar[lasar$OrigAnalyte != "Field Conductivity",]
+# lasar <- lasar[lasar$OrigAnalyte != "Total Coliform",]
+# lasar <- lasar[lasar$OrigAnalyte != "Bug Riffle Jars",]
+# lasar <- lasar[lasar$OrigAnalyte != "Taxon Count",]
+# lasar <- lasar[lasar$OrigAnalyte != "Life Stage",]
+# lasar <- lasar[lasar$OrigAnalyte != "Alkalinity as Calcium Carbonate",]
+# lasar <- lasar[lasar$OrigAnalyte != "Field Alkalinity as Calcium Carbonate",]
+# lasar <- lasar[lasar$OrigAnalyte != "Field Dissolved Oxygen",]
+# lasar <- lasar[lasar$OrigAnalyte != "Nitrate/nitrite as N",]
+# lasar <- lasar[lasar$OrigAnalyte != "Total Dissolved Solids",]
+# lasar <- lasar[lasar$OrigAnalyte != "Total Kjeldahl Nitrogen",]
+# lasar <- lasar[lasar$OrigAnalyte != "Total Organic Carbon",]
+# lasar <- lasar[lasar$OrigAnalyte != "Total Phosphorus",]
+# lasar <- lasar[lasar$OrigAnalyte != "Total Solids",]
+# lasar <- lasar[lasar$OrigAnalyte != "Total Suspended Solids",]
+# lasar <- lasar[lasar$OrigAnalyte != "E. Coli",]
+# lasar <- lasar[lasar$OrigAnalyte != "Bug Riffle Collector",]
+# lasar <- lasar[lasar$OrigAnalyte != "Taxon ID",]
+# lasar <- lasar[lasar$OrigAnalyte != "Field Turbidity",]
+# lasar <- lasar[lasar$OrigAnalyte != "Turbidity",]
+# lasar <- lasar[lasar$OrigAnalyte != "Field pH",]
+# lasar <- lasar[lasar$OrigAnalyte != "pH",]
+# lasar <- lasar[lasar$OrigAnalyte != "Unique Taxon",]
 
 require(plyr)
 
@@ -108,6 +152,12 @@ for(i in 1:length(myQuery)) {
 
 unique(mydata$Work_Order)
 unique(mydata$Project)
+
+#Convert to consistent Project names 
+#To identify basins
+lasar.basin <- merge(lasar, mydata[,c("Station_ID", "Project")], by = "Station_ID", all.x=TRUE)
+lasar.basin[is.na(lasar.basin$Basin),"Station_ID"]
+
 
 ####check for new data
 oldpath <-"\\\\Deqhq1\\PSP\\Rscripts\\2014\\old\\20140612\\"

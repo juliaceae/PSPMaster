@@ -409,6 +409,9 @@ mydata_clean_noV[mydata_clean_noV$Station_Description == "Rock Creek at 172nd, S
 mydata_clean_noV[mydata_clean_noV$Station_Description == "Noyer Creek at Hwy 212, St. Paul Lutheran Church (North Fork, Deep Creek, Clackamas)", "Station_Description"] <- "Noyer Creek at Hwy 212"
 mydata_clean_noV[mydata_clean_noV$Station_Description == "Sieben Creek at Hwy 212 (Clackamas)" , "Station_Description"] <- "Sieben Creek at Hwy 212" 
 
+#shorten AMPA name to fit on graphs
+#mydata_clean_noV[mydata_clean_noV$Analyte == "Aminomethylphosphonic acid (AMPA)", "Analyte"] <- "AMPA"
+
 
 ###########################
 ##########################
@@ -438,10 +441,10 @@ ii <- "Malathion"
 ####Add the Basin loop and Analyte loop wrapper
 for(B in unique(mydata_clean_noV$Basin)){
   subset.pointsB <- mydata_clean_noV[mydata_clean_noV$Basin == B,]
-  print(B)
+  #print(B)
   for(ii in analytes){
     subset.points0 <- subset(subset.pointsB, Analyte == ii)#aaa
-    print(ii)
+    #print(ii)
     
     if((B=="Walla Walla"| B=="Wasco" | B=="Hood River") & (ii == "Chlorpyrifos")){
       subset.points0 <- subset.points0[subset.points0$date <= "2014-04-30",]#Early Spring chlorpyrifos in WW, Wasco, Hood

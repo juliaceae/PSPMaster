@@ -12,10 +12,13 @@ outpath.criteria <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), "\
 load(paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".Rdata"))
 
 #### Load LASAR file ####
-lasar <- read.csv('//deqhq1/psp/rscripts/datapullfromlead/psp2005to2011compile20140121Version2.csv')
+#
+#lasar <- read.csv('//deqhq1/psp/rscripts/datapullfromlead/psp2005to2011compile20140121Version2.csv')
+#lasar dump provided by Brian Boling 20150313
+lasar <- read.csv('\\\\deqlab1\\wqm\\PSP\\Data\\LASARDataPull1995Current\\PSPDataLASAR_1995onData.csv')
 
 #Remove unit from parameter.name
-lasar$PARAMETER.NAME <- str_trim(gsub('\\(.*','',lasar$PARAMETER.NAME))
+#lasar$PARAMETER.NAME <- str_trim(gsub('\\(.*','',lasar$PARAMETER.NAME))
 
 #Convert to consistent Project names
 # Project Names aren't matching with the correct basin
@@ -30,24 +33,23 @@ lasar$PARAMETER.NAME <- str_trim(gsub('\\(.*','',lasar$PARAMETER.NAME))
 
 
 
-#Convert lasar datetime
-lasar$Sample.Date.Time <- as.Date(strptime(lasar$Sample.Date.Time, format="%m/%d/%Y")) 
-#lasar$Sample.Date.Time <- as.POSIXct(strptime(lasar$Sample.Date.Time, format = '%m/%d/%Y %H:%M'))
 
 #Match the Element column names Basin, Station_Number, Station_Description, date, Analyte, RESULT, MRL, Units, SampleType, RESULT_clean, "RESULT_clean.ug.l"=NA, "RESULT_clean.ug.l.subND"=NA
-lasar$Client <- 'Pesticide Stewardship Partnerships'
-lasar <- rename(lasar, c('Sampling.Event.Number' = 'Work_Order', 
-                         'Sampling.Subproject.Name' = 'Project',
-                         'Station.Identifier' = 'Station_ID',
-                         'Station.Description' = 'Station_Description',
-                         'Sample.Date.Time' = 'Sampled',
-                         'PARAMETER.NAME' = 'OrigAnalyte',
-                         'Limit.of.Detection' = 'MRL',
-                         'RESULT..LOQ.' = 'Result',
-                         'Original_UNITS' = 'Units',
-                         'QA.QC.Type' = 'SampleType'))
+#lasar$Client <- 'Pesticide Stewardship Partnerships'
+#lasar$Project <- ""
+lasar <- rename(lasar, c('Sampling_Event' = 'Work_Order', 
+                         #'Sampling.Subproject.Name' = 'Project',
+                         'Station' = 'Station_ID',
+                         'Station_Description' = 'Station_Description',
+                         'Sampling_Date' = 'Sampled',
+                         'AnalyteName' = 'OrigAnalyte',
+                         'method_reporting_limit' = 'MRL',
+                         'RESULT' = 'Result',
+                         'UNIT' = 'Units',
+                         'Sample_Type' = 'SampleType',
+                         'STATUS' = 'Grade'))
 lasar <- lasar[,c("Work_Order", 
-                  "Project", 
+                  #"Project", 
                   "Station_ID", 
                   "Station_Description", 
                   "Sampled", 
@@ -55,7 +57,21 @@ lasar <- lasar[,c("Work_Order",
                   "MRL", 
                   "Result", 
                   "Units", 
-                  "SampleType")]
+                  "SampleType", 
+                  "Grade")]
+#Convert lasar datetime
+lasar$Sample.Date.Time <- lasar$Sampled
+lasar$Sample.Date.Time <- as.Date(strptime(lasar$Sample.Date.Time, format="%m/%d/%Y")) 
+#lasar$Sample.Date.Time <- as.POSIXct(strptime(lasar$Sample.Date.Time, format = '%m/%d/%Y %H:%M'))
+
+#add the Basin to each sample point
+basins <- read.csv('P:\\GIS\\PSP_basins\\PSP_Basins_20150427\\PSPDataLASAR_1995onUniqueStations2.csv', stringsAsFactors=FALSE)
+lasar2 <- merge(basins, lasar, by.x="Station", by.y="Station_ID", all.x=TRUE)
+str(lasar2)
+
+
+#lasar.basin[is.na(lasar.basin$Basin),"PSP_Name"]
+
 
 # #Trimming lasar file by cutting out parameters
 # lasar <- lasar[lasar$OrigAnalyte != "Percent Saturation Field Dissolved Oxygen",]

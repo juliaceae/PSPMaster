@@ -15,7 +15,7 @@ load(paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Dat
 #
 #lasar <- read.csv('//deqhq1/psp/rscripts/datapullfromlead/psp2005to2011compile20140121Version2.csv')
 #lasar dump provided by Brian Boling 20150313
-lasar <- read.csv('\\\\deqlab1\\wqm\\PSP\\Data\\LASARDataPull1995Current\\PSPDataLASAR_1995onData.csv')
+lasar <- read.csv('\\\\deqlab1\\wqm\\PSP\\Data\\LASARDataPull1995Current\\PSPDataLASAR_1995onData.csv', stringsAsFactors=FALSE)
 
 #Remove unit from parameter.name
 #lasar$PARAMETER.NAME <- str_trim(gsub('\\(.*','',lasar$PARAMETER.NAME))
@@ -41,33 +41,33 @@ lasar <- rename(lasar, c('Sampling_Event' = 'Work_Order',
                          #'Sampling.Subproject.Name' = 'Project',
                          'Station' = 'Station_ID',
                          'Station_Description' = 'Station_Description',
-                         'Sampling_Date' = 'Sampled',
+                         'Sampling_Date' = 'Sampled_Date',
                          'AnalyteName' = 'OrigAnalyte',
                          'method_reporting_limit' = 'MRL',
                          'RESULT' = 'Result',
                          'UNIT' = 'Units',
                          'Sample_Type' = 'SampleType',
-                         'STATUS' = 'Grade'))
+                         'STATUS' = 'DQL'))
 lasar <- lasar[,c("Work_Order", 
                   #"Project", 
                   "Station_ID", 
                   "Station_Description", 
-                  "Sampled", 
+                  "Sampled_Date", 
                   "OrigAnalyte", 
                   "MRL", 
                   "Result", 
                   "Units", 
                   "SampleType", 
-                  "Grade")]
+                  "DQL")]
 #Convert lasar datetime
-lasar$Sample.Date.Time <- lasar$Sampled
-lasar$Sample.Date.Time <- as.Date(strptime(lasar$Sample.Date.Time, format="%m/%d/%Y")) 
+lasar$Sampled_Date <- as.Date(strptime(lasar$Sampled_Date, format="%m/%d/%Y")) 
 #lasar$Sample.Date.Time <- as.POSIXct(strptime(lasar$Sample.Date.Time, format = '%m/%d/%Y %H:%M'))
 
 #add the Basin to each sample point
 basins <- read.csv('P:\\GIS\\PSP_basins\\PSP_Basins_20150427\\PSPDataLASAR_1995onUniqueStations2.csv', stringsAsFactors=FALSE)
-lasar2 <- merge(basins, lasar, by.x="Station", by.y="Station_ID", all.x=TRUE)
-str(lasar2)
+basins <- rename(basins, c('PSP_Name' = 'Project', 
+                           'Station' = 'Station_ID')) 
+lasar.basin <- merge(basins, lasar, by.x="Station_ID", by.y="Station_ID", all.x=TRUE)
 
 
 #lasar.basin[is.na(lasar.basin$Basin),"PSP_Name"]
@@ -169,10 +169,11 @@ for(i in 1:length(myQuery)) {
 unique(mydata$Work_Order)
 unique(mydata$Project)
 
+#Old attempt
 #Convert to consistent Project names 
 #To identify basins
-lasar.basin <- merge(lasar, mydata[,c("Station_ID", "Project")], by = "Station_ID", all.x=TRUE)
-lasar.basin[is.na(lasar.basin$Basin),"Station_ID"]
+#lasar.basin <- merge(lasar, mydata[,c("Station_ID", "Project")], by = "Station_ID", all.x=TRUE)
+#lasar.basin[is.na(lasar.basin$Basin),"Station_ID"]
 
 
 ####check for new data
@@ -185,8 +186,8 @@ if(new.data.n > old.data.n) print("NEW DATA! NEW DATA! NEW DATA! NEW DATA! NEW D
 ####
 
 library(stringr)
-mydata <- rbind(mydata[,c('Project', 'Station_ID', 'Station_Description', 'Sampled', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType')], 
-                lasar[,c('Project', 'Station_ID', 'Station_Description', 'Sampled', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType')])
+mydata <- rbind(mydata[,c('Project', 'Station_ID', 'Station_Description', 'Sampled_Date', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType', 'DQL')], 
+                lasar.basin[,c('Project', 'Station_ID', 'Station_Description', 'Sampled_Date', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType', 'DQL')])
 
 Analyte <- mydata$OrigAnalyte
 Station_Description <- mydata$Station_Description
@@ -203,12 +204,24 @@ RESULT <- str_trim(mydata$Result)
 report <- get.cases(RESULT)
 report
 
+#substitute "<" results with "ND"
+RESULT_clean <- gsub("<.*","ND",RESULT)
+#report <- get.cases(RESULT_clean)
+#add to the report
+report$Sub <- gsub("<.*","ND",report$Case)
+report$SubFinal  <- report$Sub #Create a copy of the Sub field
+report
+
+unique(RESULT_clean) 
+
 ####To the report above, add a column called "Sub" and populate with substituted values. This is the value that will be substituted.
 ####Also, create a column called "RESULT_clean".  Populate column with the substituted values.
 ####Check the report$Sub for unacceptable substitutions.  MANUAL clean up with final values.
 report$Sub <- gsub("[^0-9.]","",report$Case)
 report$SubFinal  <- report$Sub #Create a copy of the Sub field
+report
 RESULT_clean <- gsub("[^0-9.]","",RESULT)
+unique(RESULT_clean) 
 
 #report[report$Case == '-0.1','SubFinal'] <- -0.1
 #mydata[mydata$RESULT == '-0.1','Result_clean'] <- -0.1

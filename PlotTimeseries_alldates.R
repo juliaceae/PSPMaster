@@ -11,6 +11,11 @@ library(plyr) # New addition to the preamble
 outpath.criteria <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), "\\", sep="") 
 load(paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".Rdata"))
 
+#Create and point to new directories
+new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\2014\\",Sys.Date(), sep="")) 
+outpath.plot.points <- paste("\\\\Deqhq1\\PSP\\Rscripts\\2014\\",Sys.Date(), "\\", sep="") 
+setwd(outpath.plot.points)
+
 #### Load LASAR file ####
 #
 #lasar <- read.csv('//deqhq1/psp/rscripts/datapullfromlead/psp2005to2011compile20140121Version2.csv')
@@ -75,58 +80,9 @@ lasar.basin <- merge(basins, lasar, by.x="Station_ID", by.y="Station_ID", all.x=
 
 # #Trimming lasar file by cutting out parameters
 # lasar <- lasar[lasar$OrigAnalyte != "Percent Saturation Field Dissolved Oxygen",]
-# lasar <- lasar[lasar$OrigAnalyte != "Field Temperature",]
-# lasar <- lasar[lasar$OrigAnalyte != "Chlorophyll a",]
-# lasar <- lasar[lasar$OrigAnalyte != "Pheophytin a",]
-# lasar <- lasar[lasar$OrigAnalyte != "Conductivity",]
-# lasar <- lasar[lasar$OrigAnalyte != "Field Conductivity",]
-# lasar <- lasar[lasar$OrigAnalyte != "Total Coliform",]
-# lasar <- lasar[lasar$OrigAnalyte != "Bug Riffle Jars",]
-# lasar <- lasar[lasar$OrigAnalyte != "Taxon Count",]
-# lasar <- lasar[lasar$OrigAnalyte != "Life Stage",]
-# lasar <- lasar[lasar$OrigAnalyte != "Alkalinity as Calcium Carbonate",]
-# lasar <- lasar[lasar$OrigAnalyte != "Field Alkalinity as Calcium Carbonate",]
-# lasar <- lasar[lasar$OrigAnalyte != "Field Dissolved Oxygen",]
-# lasar <- lasar[lasar$OrigAnalyte != "Nitrate/nitrite as N",]
-# lasar <- lasar[lasar$OrigAnalyte != "Total Dissolved Solids",]
-# lasar <- lasar[lasar$OrigAnalyte != "Total Kjeldahl Nitrogen",]
-# lasar <- lasar[lasar$OrigAnalyte != "Total Organic Carbon",]
-# lasar <- lasar[lasar$OrigAnalyte != "Total Phosphorus",]
-# lasar <- lasar[lasar$OrigAnalyte != "Total Solids",]
-# lasar <- lasar[lasar$OrigAnalyte != "Total Suspended Solids",]
-# lasar <- lasar[lasar$OrigAnalyte != "E. Coli",]
-# lasar <- lasar[lasar$OrigAnalyte != "Bug Riffle Collector",]
-# lasar <- lasar[lasar$OrigAnalyte != "Taxon ID",]
-# lasar <- lasar[lasar$OrigAnalyte != "Field Turbidity",]
-# lasar <- lasar[lasar$OrigAnalyte != "Turbidity",]
-# lasar <- lasar[lasar$OrigAnalyte != "Field pH",]
-# lasar <- lasar[lasar$OrigAnalyte != "pH",]
-# lasar <- lasar[lasar$OrigAnalyte != "Unique Taxon",]
 
 require(plyr)
 
-####This function is two years old and based in Dan's python world.  Simplify me!
-get.cases <- function(chk.values) {
-  ## Checks for non-numeric values in the vector "chk.values", which should
-  ## be a character vector. A data.frame is returned with the non-numeric
-  ## values (cases) and the number of occurrences for each case. If there
-  ## are olnly numeric values in the input vectore, the entries in the 
-  ## data.frame returned are "No non-numeric values found" for the case
-  ## and NA for the count
-  ## Created by Kevin Brannan
-  ## Version 1.0.0.09.20.2012
-  tmp.cases <- chk.values[grep("[^0-9.]",chk.values)][!duplicated(chk.values[grep("[^0-9.]",chk.values)])]
-  if(length(tmp.cases) > 0){
-    tmp.cases.report <- data.frame(Case = tmp.cases,Count=as.numeric(NA))
-    for(ii in 1:length(tmp.cases)){
-      tmp.cases.report$Count[ii] <- length(grep(tmp.cases.report$Case[ii],chk.values))
-    }
-  } else{
-    tmp.cases.report <- data.frame("No non-numeric values found",NA)
-    names(tmp.cases.report) <- c("Case","Count")
-  }
-  return(tmp.cases.report)
-}
 
 ## load package for ODBC
 #install.packages("RODBC")
@@ -168,81 +124,112 @@ for(i in 1:length(myQuery)) {
 
 unique(mydata$Work_Order)
 unique(mydata$Project)
-
-#Old attempt
-#Convert to consistent Project names 
-#To identify basins
-#lasar.basin <- merge(lasar, mydata[,c("Station_ID", "Project")], by = "Station_ID", all.x=TRUE)
-#lasar.basin[is.na(lasar.basin$Basin),"Station_ID"]
-
-
-####check for new data
-oldpath <-"\\\\Deqhq1\\PSP\\Rscripts\\2014\\old\\20140612\\"
-oldfile <- "State_2014_mydata_clean_noV.csv"
-old.data <- read.csv(paste0(oldpath, oldfile), colClasses = "character")
-old.data.n  <- nrow(old.data)#$Station_Number)
-new.data.n <- nrow(mydata)
-if(new.data.n > old.data.n) print("NEW DATA! NEW DATA! NEW DATA! NEW DATA! NEW DATA AVAILABLE!")
-####
+# ####check for new data
+# oldpath <-"\\\\Deqhq1\\PSP\\Rscripts\\2014\\old\\20140612\\"
+# oldfile <- "State_2014_mydata_clean_noV.csv"
+# old.data <- read.csv(paste0(oldpath, oldfile), colClasses = "character")
+# old.data.n  <- nrow(old.data)#$Station_Number)
+# new.data.n <- nrow(mydata)
+# if(new.data.n > old.data.n) print("NEW DATA! NEW DATA! NEW DATA! NEW DATA! NEW DATA AVAILABLE!")
+# ####
 
 library(stringr)
+
+
+#before the tables are joined, reformat the element dates (which were in a different format than the lasar dump dates)
+mydata$Sampled_Date <- as.Date(strptime(mydata$Sampled_Date, format="%d %b %Y")) 
+
 mydata <- rbind(mydata[,c('Project', 'Station_ID', 'Station_Description', 'Sampled_Date', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType', 'DQL')], 
                 lasar.basin[,c('Project', 'Station_ID', 'Station_Description', 'Sampled_Date', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType', 'DQL')])
 
-Analyte <- mydata$OrigAnalyte
-Station_Description <- mydata$Station_Description
-Station_Number <- as.numeric(mydata$Station_ID)
-new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\2014\\",Sys.Date(), sep="")) 
-outpath.plot.points <- paste("\\\\Deqhq1\\PSP\\Rscripts\\2014\\",Sys.Date(), "\\", sep="") 
-setwd(outpath.plot.points)
-log.scale <- ""
-Units <- mydata$Units
-SampleType <- mydata$SampleType
-Basin <- mydata$Project
+mydata_clean <- rename(mydata, 
+                 c('Project' = 'Basin', 
+                   'Station_ID' = 'Station_Number', 
+                   'Station_Description' = 'Station_Description', 
+                   'Sampled_Date' = 'date', 
+                   'OrigAnalyte' = 'Analyte', 
+                   'Result' = 'RESULT', 
+                   'MRL' = 'MRL', 
+                   'Units' = 'Units', 
+                   'SampleType' = 'SampleType', 
+                   'DQL' = 'DQL')) 
+                
+#manipulations to the combined LASAR/element set
+mydata_clean$Station_Number <- as.numeric(mydata_clean$Station_Number)
+mydata_clean$RESULT <- str_trim(mydata_clean$RESULT)
+mydata_clean$RESULT.raw <- mydata_clean$RESULT
+mydata_clean$RESULT_clean.ug.l <- as.numeric(NA)
+mydata_clean$RESULT_clean.ug.l.subND <- as.numeric(NA)
 
-RESULT <- str_trim(mydata$Result)
-report <- get.cases(RESULT)
-report
+################################################################
+############work in progress####################################################
+####This function is two years old and based in Dan's python world.  Simplify me!
+get.cases <- function(chk.values) {
+  ## Checks for non-numeric values in the vector "chk.values", which should
+  ## be a character vector. A data.frame is returned with the non-numeric
+  ## values (cases) and the number of occurrences for each case. If there
+  ## are olnly numeric values in the input vectore, the entries in the 
+  ## data.frame returned are "No non-numeric values found" for the case
+  ## and NA for the count
+  ## Created by Kevin Brannan
+  ## Version 1.0.0.09.20.2012
+  tmp.cases <- chk.values[grep("[^0-9.]",chk.values)][!duplicated(chk.values[grep("[^0-9.]",chk.values)])]
+  if(length(tmp.cases) > 0){
+    tmp.cases.report <- data.frame(Case = tmp.cases,Count=as.numeric(NA))
+    for(ii in 1:length(tmp.cases)){
+      tmp.cases.report$Count[ii] <- length(grep(tmp.cases.report$Case[ii],chk.values))
+    }
+  } else{
+    tmp.cases.report <- data.frame("No non-numeric values found",NA)
+    names(tmp.cases.report) <- c("Case","Count")
+  }
+  return(tmp.cases.report)
+}
 
-#substitute "<" results with "ND"
-RESULT_clean <- gsub("<.*","ND",RESULT)
-#report <- get.cases(RESULT_clean)
-#add to the report
-report$Sub <- gsub("<.*","ND",report$Case)
-report$SubFinal  <- report$Sub #Create a copy of the Sub field
-report
+sub.cases <- function(data.in,sub.table){
+  ## Replaces non-numeric values of data.in with the correspoinding elements
+  ## in sub.table. The sub.table dataframe should be generated using the 
+  ## get.cases function
+  ## Created by Kevin Brannan
+  ## Version 1.0.0.09.20.2012
+  for(ii in 1:length(sub.table$Sub)){
+    sub.index <- data.in == sub.table$Case[ii]  #grep(sub.table$Case[ii],data.in, fixed = TRUE)
+    print(paste("Number of sub for ", sub.table$Case[ii], " is ",sub.table$Sub[ii],sep=""))
+    if(length(sub.index)> 0){
+      data.in[data.in == sub.table$Case[ii]] <- as.character(sub.table$Sub[ii])
+      rm(sub.index)
+    }
+  }
+  return(data.in)
+}
 
-unique(RESULT_clean) 
+
+report <- get.cases(mydata_clean$RESULT)
+report[i,]
 
 ####To the report above, add a column called "Sub" and populate with substituted values. This is the value that will be substituted.
-####Also, create a column called "RESULT_clean".  Populate column with the substituted values.
-####Check the report$Sub for unacceptable substitutions.  MANUAL clean up with final values.
-report$Sub <- gsub("[^0-9.]","",report$Case)
-report$SubFinal  <- report$Sub #Create a copy of the Sub field
-report
-RESULT_clean <- gsub("[^0-9.]","",RESULT)
-unique(RESULT_clean) 
+lst.split <- strsplit(as.character(report$Case), split = ' ')
+for (i in 1:length(lst.split)){
+  report$Sub[i]  <- ifelse(substr(lst.split[[i]][1],1,1) == '<',"ND",lst.split[[i]][1])
+}
 
-#report[report$Case == '-0.1','SubFinal'] <- -0.1
-#mydata[mydata$RESULT == '-0.1','Result_clean'] <- -0.1
-#View(mydata[mydata$RESULT == '-0.1',])
+####Check the report$Sub for unacceptable substitutions.  MANUAL clean up with final values.
+report[report$Case == "0.01Est", "Sub"] <-  0.01
+report[report$Case == "None detected", "Sub"] <-  "ND"
+
+####Also, create a column called "RESULT".  Populate column with the substituted values.
+mydata_clean$RESULT <- sub.cases(mydata_clean$RESULT.raw, report) #just use the report object created in step 02_LASAR_clean.R
+
 
 ####turns empty fields into NAs.
-report$SubFinal <- as.numeric(report$SubFinal) 
-RESULT_clean <- as.numeric(RESULT_clean) 
-report
+#report$SubFinal <- as.numeric(report$SubFinal) 
+mydata_clean$RESULT_clean <- as.numeric(mydata_clean$RESULT) 
 
-####convert dates from characters to dates
-#date <- as.Date(strptime(mydata$Sampled, format="%d-%b-%y %H:%M:%s")) #still lost the hours/minutes
-#date <- as.Date(strptime(mydata$Sampled_Date, format="%d %b %Y")) 
-date <- as.Date(mydata$Sampled)
+############work in progress####################################################
+################################################################
 
-MRL <- mydata$MRL
 
-####Create new table with only wanted columns
-mydata_clean <- data.frame(Basin, Station_Number, Station_Description, date, Analyte, RESULT, MRL, Units, SampleType, RESULT_clean, "RESULT_clean.ug.l"=NA, "RESULT_clean.ug.l.subND"=NA, stringsAsFactors = FALSE)
-mydata_clean$RESULT_clean.ug.l <- as.numeric(mydata_clean$RESULT_clean.ug.l)
-mydata_clean$RESULT_clean.ug.l.subND <- as.numeric(mydata_clean$RESULT_clean.ug.l.subND)
+
 
 ####Subset and set aside the field duplicates ----
 unique(mydata_clean$SampleType) 

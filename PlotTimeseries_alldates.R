@@ -52,7 +52,8 @@ lasar <- rename(lasar, c('Sampling_Event' = 'Work_Order',
                          'RESULT' = 'Result',
                          'UNIT' = 'Units',
                          'Sample_Type' = 'SampleType',
-                         'STATUS' = 'DQL'))
+                         'STATUS' = 'DQL',
+                         'Survey' = 'Survey'))
 lasar <- lasar[,c("Work_Order", 
                   #"Project", 
                   "Station_ID", 
@@ -63,7 +64,8 @@ lasar <- lasar[,c("Work_Order",
                   "Result", 
                   "Units", 
                   "SampleType", 
-                  "DQL")]
+                  "DQL", 
+                  "Survey")]
 #Convert lasar datetime
 lasar$Sampled_Date <- as.Date(strptime(lasar$Sampled_Date, format="%m/%d/%Y")) 
 #lasar$Sample.Date.Time <- as.POSIXct(strptime(lasar$Sample.Date.Time, format = '%m/%d/%Y %H:%M'))
@@ -75,14 +77,7 @@ basins <- rename(basins, c('PSP_Name' = 'Project',
 lasar.basin <- merge(basins, lasar, by.x="Station_ID", by.y="Station_ID", all.x=TRUE)
 
 
-#lasar.basin[is.na(lasar.basin$Basin),"PSP_Name"]
-
-
-# #Trimming lasar file by cutting out parameters
-# lasar <- lasar[lasar$OrigAnalyte != "Percent Saturation Field Dissolved Oxygen",]
-
 require(plyr)
-
 
 ## load package for ODBC
 #install.packages("RODBC")
@@ -161,8 +156,6 @@ mydata_clean$RESULT.raw <- mydata_clean$RESULT
 mydata_clean$RESULT_clean.ug.l <- as.numeric(NA)
 mydata_clean$RESULT_clean.ug.l.subND <- as.numeric(NA)
 
-################################################################
-############work in progress####################################################
 ####This function is two years old and based in Dan's python world.  Simplify me!
 get.cases <- function(chk.values) {
   ## Checks for non-numeric values in the vector "chk.values", which should
@@ -203,9 +196,8 @@ sub.cases <- function(data.in,sub.table){
   return(data.in)
 }
 
-
 report <- get.cases(mydata_clean$RESULT)
-report[i,]
+report
 
 ####To the report above, add a column called "Sub" and populate with substituted values. This is the value that will be substituted.
 lst.split <- strsplit(as.character(report$Case), split = ' ')
@@ -220,27 +212,19 @@ report[report$Case == "None detected", "Sub"] <-  "ND"
 ####Also, create a column called "RESULT".  Populate column with the substituted values.
 mydata_clean$RESULT <- sub.cases(mydata_clean$RESULT.raw, report) #just use the report object created in step 02_LASAR_clean.R
 
-
 ####turns empty fields into NAs.
 #report$SubFinal <- as.numeric(report$SubFinal) 
 mydata_clean$RESULT_clean <- as.numeric(mydata_clean$RESULT) 
-
-############work in progress####################################################
-################################################################
-
-
 
 
 ####Subset and set aside the field duplicates ----
 unique(mydata_clean$SampleType) 
 
-####deleting "Other::Ot" from SampleType (1/20/15 JC: right now, the Others are associated with Project/Basin"Lab Spike POCIS/SPMD")
+####deleting "Other::Ot" from SampleType (1/20/15 JC: right now, the Others are ONLY associated with Project/Basin"Lab Spike POCIS/SPMD", reaffirmed 5/28/15 JC.)
 mydata_clean <- mydata_clean[mydata_clean$SampleType != "Other::Ot",]
 
 FD <- subset(mydata_clean, SampleType %in% c("Field Duplicate", "Field Duplicate::FD", 'Sample - Field Duplicate') & RESULT_clean != "NA") #dataframe of all detected FDs
 unique(FD$RESULT_clean)
-
-######## PICK UP HERE ########
 
 ####Make new subset without the Voids, Field Dupes and Blanks.
 sort(unique(mydata_clean$RESULT)) #verify that the names in quotes are the names being used in the datatable

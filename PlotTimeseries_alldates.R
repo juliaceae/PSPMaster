@@ -6,6 +6,21 @@
 library(stringr)
 library(plyr) # New addition to the preamble
 
+resolveMRLs <- function(ids, dnd, results){
+  
+  dnd.sum <- ave(dnd, ids, FUN = sum)
+  cases   <- findInterval(dnd.sum, c(0, 1, 2))
+  
+  id.max <- ave(results, ids, FUN = max)
+  id.min <- ave(results, ids, FUN = min)
+  
+  i0 <- cases == 1 & id.min == results
+  i1 <- cases == 2 & dnd == 1
+  i2 <- cases == 3 & id.max == results
+  
+  return(i0 | i1 | i2)
+}
+
 ####Run "P:\Rscripts\Criteria\ToxicsCriteriaPSP.R" first.
 #load("P:\\Rscripts\\Criteria\\2014-12-08\\min.Aquatic.Life.criteria.values_savedon2014-12-08.Rdata")
 outpath.criteria <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), "\\", sep="") 
@@ -20,7 +35,7 @@ setwd(outpath.plot.points)
 #
 #lasar <- read.csv('//deqhq1/psp/rscripts/datapullfromlead/psp2005to2011compile20140121Version2.csv')
 #lasar dump provided by Brian Boling 20150313
-lasar <- read.csv('\\\\deqlab1\\wqm\\PSP\\Data\\LASARDataPull1995Current\\PSPDataLASAR_1995onData.csv', stringsAsFactors=FALSE)
+lasar <- read.csv('\\\\deqlab1\\wqm\\PSP\\Data\\LASARDataPull1995Current\\PSPDataLASAR_1995onDatawMethodCode.csv', stringsAsFactors=FALSE)
 
 #Remove unit from parameter.name
 #lasar$PARAMETER.NAME <- str_trim(gsub('\\(.*','',lasar$PARAMETER.NAME))
@@ -34,9 +49,6 @@ lasar <- read.csv('\\\\deqlab1\\wqm\\PSP\\Data\\LASARDataPull1995Current\\PSPDat
 # }
 # lasar$Sampling.Subproject.Name <- revalue(lasar$Sampling.Subproject.Name, replace = revalue_vector)
 # levels(lasar$Sampling.Subproject.Name) <- gsub(' Basin','',levels(lasar$Sampling.Subproject.Name))
-
-
-
 
 
 #Match the Element column names Basin, Station_Number, Station_Description, date, Analyte, RESULT, MRL, Units, SampleType, RESULT_clean, "RESULT_clean.ug.l"=NA, "RESULT_clean.ug.l.subND"=NA
@@ -53,7 +65,8 @@ lasar <- rename(lasar, c('Sampling_Event' = 'Work_Order',
                          'UNIT' = 'Units',
                          'Sample_Type' = 'SampleType',
                          'STATUS' = 'DQL',
-                         'Survey' = 'Survey'))
+                         'Sample_Matrix' = 'Matrix',
+                         'method_CODE' = 'method_CODE'))
 lasar <- lasar[,c("Work_Order", 
                   #"Project", 
                   "Station_ID", 
@@ -65,13 +78,24 @@ lasar <- lasar[,c("Work_Order",
                   "Units", 
                   "SampleType", 
                   "DQL", 
-                  "Survey")]
+                  "Matrix"#, 
+                  #"method_CODE"
+                  )]
 #Convert lasar datetime
 lasar$Sampled_Date <- as.Date(strptime(lasar$Sampled_Date, format="%m/%d/%Y")) 
 #lasar$Sample.Date.Time <- as.POSIXct(strptime(lasar$Sample.Date.Time, format = '%m/%d/%Y %H:%M'))
 
-#add the Basin to each sample point
-basins <- read.csv('P:\\GIS\\PSP_basins\\PSP_Basins_20150427\\PSPDataLASAR_1995onUniqueStations2.csv', stringsAsFactors=FALSE)
+#delete samples that came from a duplicate method
+# methods2 <- c('Alachlor', 
+#               'Atrazine', 
+#               'Azinphos-methyl', 
+#               'Metolachlor', 
+#               'Metribuzin', 
+#               'Propazine', 
+#               'Simazine')
+
+#add the Basin to each sample point 
+basins <- read.csv('P:\\GIS\\PSP_basins\\PSP_Basins_20150427\\PSPDataLASAR_1995onUniqueStations2.csv', stringsAsFactors=FALSE) #This file came from a GIS join. 
 basins <- rename(basins, c('PSP_Name' = 'Project', 
                            'Station' = 'Station_ID')) 
 lasar.basin <- merge(basins, lasar, by.x="Station_ID", by.y="Station_ID", all.x=TRUE)
@@ -134,8 +158,8 @@ library(stringr)
 #before the tables are joined, reformat the element dates (which were in a different format than the lasar dump dates)
 mydata$Sampled_Date <- as.Date(strptime(mydata$Sampled_Date, format="%d %b %Y")) 
 
-mydata <- rbind(mydata[,c('Project', 'Station_ID', 'Station_Description', 'Sampled_Date', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType', 'DQL')], 
-                lasar.basin[,c('Project', 'Station_ID', 'Station_Description', 'Sampled_Date', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType', 'DQL')])
+mydata <- rbind(mydata[,c('Project', 'Station_ID', 'Station_Description', 'Sampled_Date', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType', 'DQL', 'Matrix')], 
+                lasar.basin[,c('Project', 'Station_ID', 'Station_Description', 'Sampled_Date', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType', 'DQL', 'Matrix')])
 
 mydata_clean <- rename(mydata, 
                  c('Project' = 'Basin', 
@@ -147,7 +171,8 @@ mydata_clean <- rename(mydata,
                    'MRL' = 'MRL', 
                    'Units' = 'Units', 
                    'SampleType' = 'SampleType', 
-                   'DQL' = 'DQL')) 
+                   'DQL' = 'DQL', 
+                   'Matrix' = 'Matrix')) 
                 
 #manipulations to the combined LASAR/element set
 mydata_clean$Station_Number <- as.numeric(mydata_clean$Station_Number)
@@ -155,13 +180,15 @@ mydata_clean$RESULT <- str_trim(mydata_clean$RESULT)
 mydata_clean$RESULT.raw <- mydata_clean$RESULT
 mydata_clean$RESULT_clean.ug.l <- as.numeric(NA)
 mydata_clean$RESULT_clean.ug.l.subND <- as.numeric(NA)
+#Deleting the 2nd column [2C] tag from ELEMENT
+mydata_clean$Analyte <- gsub(" \\[2C\\]$","",mydata_clean$Analyte)
 
 ####This function is two years old and based in Dan's python world.  Simplify me!
 get.cases <- function(chk.values) {
   ## Checks for non-numeric values in the vector "chk.values", which should
   ## be a character vector. A data.frame is returned with the non-numeric
   ## values (cases) and the number of occurrences for each case. If there
-  ## are olnly numeric values in the input vectore, the entries in the 
+  ## are only numeric values in the input vectore, the entries in the 
   ## data.frame returned are "No non-numeric values found" for the case
   ## and NA for the count
   ## Created by Kevin Brannan
@@ -197,7 +224,7 @@ sub.cases <- function(data.in,sub.table){
 }
 
 report <- get.cases(mydata_clean$RESULT)
-report
+#report
 
 ####To the report above, add a column called "Sub" and populate with substituted values. This is the value that will be substituted.
 lst.split <- strsplit(as.character(report$Case), split = ' ')
@@ -205,6 +232,8 @@ for (i in 1:length(lst.split)){
   report$Sub[i]  <- ifelse(substr(lst.split[[i]][1],1,1) == '<',"ND",lst.split[[i]][1])
 }
 
+#reorder the report and view a subset by row number
+#report[order(report$Case),][1000:1001,]
 ####Check the report$Sub for unacceptable substitutions.  MANUAL clean up with final values.
 report[report$Case == "0.01Est", "Sub"] <-  0.01
 report[report$Case == "None detected", "Sub"] <-  "ND"
@@ -217,29 +246,53 @@ mydata_clean$RESULT <- sub.cases(mydata_clean$RESULT.raw, report) #just use the 
 mydata_clean$RESULT_clean <- as.numeric(mydata_clean$RESULT) 
 
 
+mydata$code <- paste(mydata$Station_ID,mydata$Sampled_Date,mydata$OrigAnalyte)
+sub <- with(mydata, resolveMRLs(code, dnd, tResult))
+mydata.wo.dup.MRLs <- mydata[sub,]
+mydata.wo.dups <- remove.dups(mydata.wo.dup.MRLs)
+
+##########NAs disappear... 
+aaa <- as.character(c(1,2,3,"Void", 4,5))
+bbb <- as.numeric(aaa) 
+sort(unique(bbb))
+##########backup copy##########################################################
+mydata_clean_bu <- mydata_clean
+####################################################################
+
 ####Subset and set aside the field duplicates ----
 unique(mydata_clean$SampleType) 
 
 ####deleting "Other::Ot" from SampleType (1/20/15 JC: right now, the Others are ONLY associated with Project/Basin"Lab Spike POCIS/SPMD", reaffirmed 5/28/15 JC.)
-mydata_clean <- mydata_clean[mydata_clean$SampleType != "Other::Ot",]
+#mydata_clean <- mydata_clean[mydata_clean$SampleType != "Other::Ot",]
+
+#Separate water grab and composite samples
+unique(mydata_clean$Matrix) 
+Sediment <- mydata_clean[mydata_clean$Matrix == "Sediment",]
+POCIS <- mydata_clean[mydata_clean$Matrix == "POCIS" | mydata_clean$Matrix == "POCIS - Surface Water", ]
+SPMD <- mydata_clean[mydata_clean$Matrix == "SPMD", ]
+mydata_clean <- mydata_clean[mydata_clean$Matrix == "River/Stream" | mydata_clean$Matrix == "Surface water", ]
 
 FD <- subset(mydata_clean, SampleType %in% c("Field Duplicate", "Field Duplicate::FD", 'Sample - Field Duplicate') & RESULT_clean != "NA") #dataframe of all detected FDs
 unique(FD$RESULT_clean)
+# Voids <- (subset(mydata_clean, RESULT == "Void" & RESULT != "Cancelled"))
+# write.csv(Voids, paste0("\\\\deqhq1\\PSP\\Rscripts\\Alldates\\","Voids_Alldates_saved_on_", Sys.Date(),".csv")) 
+
 
 ####Make new subset without the Voids, Field Dupes and Blanks.
-sort(unique(mydata_clean$RESULT)) #verify that the names in quotes are the names being used in the datatable
+sort(unique(mydata_clean$RESULT)) #verify that the names in quotes in the command are the names being used in the datatable
 mydata_clean <- subset(mydata_clean, RESULT != "Void" & RESULT != "Cancelled")
-unique(mydata_clean$SampleType) #verify that the names in quotes are the names being used in the datatable
+unique(mydata_clean$SampleType) #verify that the names in quotes in the command are the names being used in the datatable
 mydata_clean <- subset(mydata_clean, Station_Number != 10000)
 mydata_clean <- subset(mydata_clean, SampleType != "Field Duplicate")
 mydata_clean <- subset(mydata_clean, SampleType != "Field Duplicate::FD")
+mydata_clean <- subset(mydata_clean, SampleType != "Sample - Field Duplicate")
 
 ####Find out which field duplicates are larger than the field primaries. Make a table
 df <- NULL
 df.fp <- NULL
 for(i in 1:nrow(FD)){
   FD2 <- FD[i,]
-  FP <- subset(mydata_clean, Analyte == FD$Analyte[i] & date == FD$date[i] & Station_Number == FD$Station_Number[i] & SampleType %in% c("Field Primary", "Field Primary::FP")) #find the matching field primary
+  FP <- subset(mydata_clean, Analyte == FD$Analyte[i] & date == FD$date[i] & Station_Number == FD$Station_Number[i] & SampleType %in% c("Field Primary", "Field Primary::FP", "Sample - Field Primary")) #find the matching field primary
   if(nrow(FP) > 1) print("more than one match") #check that getting one match only
   FP.result <- FP$RESULT_clean #get just the number
   if(is.na(FP.result) == TRUE){
@@ -253,6 +306,14 @@ for(i in 1:nrow(FD)){
   }
 }
 
+#####################
+# FD2 <- FD[1,]
+# FP <- mydata_clean[mydata_clean$SampleType %in% c("Field Primary", "Field Primary::FP", "Sample - Field Primary"),]
+# 
+# FP <- mydata_clean[mydata_clean$Station_Number == 28575,]
+# FP <- FP[FP$Analyte == "Total Solids",]
+# FP <- FP[FP$date == "2012-03-26",]
+# FP <- FP[FP$SampleType %in% c("Field Primary", "Field Primary::FP", "Sample - Field Primary"),]
 
 ####Remove Field Primaries that are less than Field Duplicates
 index <- row.names(df.fp) #row.names of the field primaries in order
@@ -267,9 +328,11 @@ mydata_clean <- rbind(df,mydata_clean)
 
 ####Subset out not needed data
 station.list <- unique(mydata_clean$Station_Number) #list of stations
-unique(mydata_clean$Analyte) #list of lab analytes
+sort(unique(mydata_clean$Analyte)) #list of lab analytes
 #Deleting the 2nd column [2C] tag from ELEMENT
-mydata_clean$Analyte <- gsub(" \\[2C\\]$","",mydata_clean$Analyte)
+#mydata_clean$Analyte <- gsub(" \\[2C\\]$","",mydata_clean$Analyte)
+
+
 
 detections <- subset(mydata_clean, RESULT != "ND" ) #subset out the NDs 
 #detections <- subset(mydata_clean, is.na(RESULT_clean) == FALSE ) #subset out the NDs 

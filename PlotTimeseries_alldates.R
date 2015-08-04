@@ -6,6 +6,8 @@
 library(stringr)
 library(plyr) # New addition to the preamble
 
+#new function from Jason Law via Peter Bryant
+#if multiple results in one day, then take the lowest MRL or highest concentration
 resolveMRLs <- function(ids, dnd, results){
   
   dnd.sum <- ave(dnd, ids, FUN = sum)
@@ -20,6 +22,16 @@ resolveMRLs <- function(ids, dnd, results){
   
   return(i0 | i1 | i2)
 }
+
+remove.dups <- function(tname) {
+  no.dups <- aggregate(RESULT_MRL ~ code, data = tname, FUN = max)
+  tname <- tname[!duplicated(tname$code),]
+  tname <- merge(no.dups, tname, by = 'code')
+  #tname$tResult <- round(tname$tResult.x, 2)
+  tname$tResult <- tname$RESULT_MRL.x
+  tname <- within(tname, rm(RESULT_MRL.x, RESULT_MRL.y))
+}
+
 
 ####Run "P:\Rscripts\Criteria\ToxicsCriteriaPSP.R" first.
 #load("P:\\Rscripts\\Criteria\\2014-12-08\\min.Aquatic.Life.criteria.values_savedon2014-12-08.Rdata")
@@ -214,7 +226,7 @@ sub.cases <- function(data.in,sub.table){
   ## Version 1.0.0.09.20.2012
   for(ii in 1:length(sub.table$Sub)){
     sub.index <- data.in == sub.table$Case[ii]  #grep(sub.table$Case[ii],data.in, fixed = TRUE)
-    print(paste("Number of sub for ", sub.table$Case[ii], " is ",sub.table$Sub[ii],sep=""))
+   # print(paste("Number of sub for ", sub.table$Case[ii], " is ",sub.table$Sub[ii],sep=""))
     if(length(sub.index)> 0){
       data.in[data.in == sub.table$Case[ii]] <- as.character(sub.table$Sub[ii])
       rm(sub.index)
@@ -245,16 +257,30 @@ mydata_clean$RESULT <- sub.cases(mydata_clean$RESULT.raw, report) #just use the 
 #report$SubFinal <- as.numeric(report$SubFinal) 
 mydata_clean$RESULT_clean <- as.numeric(mydata_clean$RESULT) 
 
+##############################################################################################################################
+###############################################################
+#Need to convert units to common unit
+table(mydata_clean$Matrix)
+mydata_clean <- mydata_clean[!mydata_clean$Matrix %in% c('Ditch/Pond/Culvert/Drain','Groundwater','Municipal Effluent'),]
+mydata_clean <- mydata_clean[!mydata_clean$RESULT.raw %in% c('Co-elution'),]
+sort(unique(mydata_clean$RESULT)) #verify that the names in quotes in the command are the names being used in the datatable
+mydata_clean <- subset(mydata_clean, RESULT != "Void" & RESULT != "Cancelled")
+unique(mydata_clean$SampleType) #verify that the names in quotes in the command are the names being used in the datatable
+mydata_clean <- subset(mydata_clean, Station_Number != 10000)
+mydata_clean$MRL_raw <- mydata_clean$MRL
+mydata_clean[is.na(mydata_clean$MRL),'MRL'] <- gsub("<","",mydata_clean[is.na(mydata_clean$MRL),'RESULT.raw'])
+mydata_clean$MRL <- as.numeric(mydata_clean$MRL)
 
-mydata$code <- paste(mydata$Station_ID,mydata$Sampled_Date,mydata$OrigAnalyte)
-sub <- with(mydata, resolveMRLs(code, dnd, tResult))
-mydata.wo.dup.MRLs <- mydata[sub,]
+mydata_clean$RESULT_MRL <- ifelse(is.na(mydata_clean$RESULT_clean),mydata_clean$MRL,mydata_clean$RESULT_clean)
+
+#If multiple samples or methods used on one station on one day for one analyte, take the lowest MRL or highest detected concentration. 
+mydata_clean$code <- paste(mydata_clean$Station_Number,mydata_clean$date,mydata_clean$Analyte)
+mydata_clean$dnd <- ifelse(mydata_clean$RESULT == 'ND',0,1)
+sub <- with(mydata_clean, resolveMRLs(code, dnd, RESULT_MRL))
+mydata.wo.dup.MRLs <- mydata_clean[sub,]
 mydata.wo.dups <- remove.dups(mydata.wo.dup.MRLs)
 
-##########NAs disappear... 
-aaa <- as.character(c(1,2,3,"Void", 4,5))
-bbb <- as.numeric(aaa) 
-sort(unique(bbb))
+
 ##########backup copy##########################################################
 mydata_clean_bu <- mydata_clean
 ####################################################################
@@ -272,39 +298,36 @@ POCIS <- mydata_clean[mydata_clean$Matrix == "POCIS" | mydata_clean$Matrix == "P
 SPMD <- mydata_clean[mydata_clean$Matrix == "SPMD", ]
 mydata_clean <- mydata_clean[mydata_clean$Matrix == "River/Stream" | mydata_clean$Matrix == "Surface water", ]
 
-FD <- subset(mydata_clean, SampleType %in% c("Field Duplicate", "Field Duplicate::FD", 'Sample - Field Duplicate') & RESULT_clean != "NA") #dataframe of all detected FDs
-unique(FD$RESULT_clean)
+# FD <- subset(mydata_clean, SampleType %in% c("Field Duplicate", "Field Duplicate::FD", 'Sample - Field Duplicate') & RESULT_clean != "NA") #dataframe of all detected FDs
+# unique(FD$RESULT_clean)
 # Voids <- (subset(mydata_clean, RESULT == "Void" & RESULT != "Cancelled"))
 # write.csv(Voids, paste0("\\\\deqhq1\\PSP\\Rscripts\\Alldates\\","Voids_Alldates_saved_on_", Sys.Date(),".csv")) 
 
 
 ####Make new subset without the Voids, Field Dupes and Blanks.
-sort(unique(mydata_clean$RESULT)) #verify that the names in quotes in the command are the names being used in the datatable
-mydata_clean <- subset(mydata_clean, RESULT != "Void" & RESULT != "Cancelled")
-unique(mydata_clean$SampleType) #verify that the names in quotes in the command are the names being used in the datatable
-mydata_clean <- subset(mydata_clean, Station_Number != 10000)
-mydata_clean <- subset(mydata_clean, SampleType != "Field Duplicate")
-mydata_clean <- subset(mydata_clean, SampleType != "Field Duplicate::FD")
-mydata_clean <- subset(mydata_clean, SampleType != "Sample - Field Duplicate")
+
+# mydata_clean <- subset(mydata_clean, SampleType != "Field Duplicate")
+# mydata_clean <- subset(mydata_clean, SampleType != "Field Duplicate::FD")
+# mydata_clean <- subset(mydata_clean, SampleType != "Sample - Field Duplicate")
 
 ####Find out which field duplicates are larger than the field primaries. Make a table
-df <- NULL
-df.fp <- NULL
-for(i in 1:nrow(FD)){
-  FD2 <- FD[i,]
-  FP <- subset(mydata_clean, Analyte == FD$Analyte[i] & date == FD$date[i] & Station_Number == FD$Station_Number[i] & SampleType %in% c("Field Primary", "Field Primary::FP", "Sample - Field Primary")) #find the matching field primary
-  if(nrow(FP) > 1) print("more than one match") #check that getting one match only
-  FP.result <- FP$RESULT_clean #get just the number
-  if(is.na(FP.result) == TRUE){
-    df <- rbind(df, FD2)    
-    df.fp <- rbind(df.fp, FP)
-  }else{  
-    if(FD$RESULT_clean[i] > FP.result){
-      df <- rbind(df, FD2)
-      df.fp <- rbind(df.fp, FP)
-    }
-  }
-}
+# df <- NULL
+# df.fp <- NULL
+# for(i in 1:nrow(FD)){
+#   FD2 <- FD[i,]
+#   FP <- subset(mydata_clean, Analyte == FD$Analyte[i] & date == FD$date[i] & Station_Number == FD$Station_Number[i] & SampleType %in% c("Field Primary", "Field Primary::FP", "Sample - Field Primary")) #find the matching field primary
+#   if(nrow(FP) > 1) print("more than one match") #check that getting one match only
+#   FP.result <- FP$RESULT_clean #get just the number
+#   if(is.na(FP.result) == TRUE){
+#     df <- rbind(df, FD2)    
+#     df.fp <- rbind(df.fp, FP)
+#   }else{  
+#     if(FD$RESULT_clean[i] > FP.result){
+#       df <- rbind(df, FD2)
+#       df.fp <- rbind(df.fp, FP)
+#     }
+#   }
+# }
 
 #####################
 # FD2 <- FD[1,]
@@ -316,14 +339,14 @@ for(i in 1:nrow(FD)){
 # FP <- FP[FP$SampleType %in% c("Field Primary", "Field Primary::FP", "Sample - Field Primary"),]
 
 ####Remove Field Primaries that are less than Field Duplicates
-index <- row.names(df.fp) #row.names of the field primaries in order
-for(aa in index){
-  mydata_clean[as.character(aa),] <- NA #NA out the field primaries
-}
-mydata_clean <- subset(mydata_clean, is.na(Station_Number) == FALSE)
-
-####Add Field Duplicates that are more than Field Primaries
-mydata_clean <- rbind(df,mydata_clean)
+# index <- row.names(df.fp) #row.names of the field primaries in order
+# for(aa in index){
+#   mydata_clean[as.character(aa),] <- NA #NA out the field primaries
+# }
+# mydata_clean <- subset(mydata_clean, is.na(Station_Number) == FALSE)
+# 
+# ####Add Field Duplicates that are more than Field Primaries
+# mydata_clean <- rbind(df,mydata_clean)
 
 
 ####Subset out not needed data
@@ -333,8 +356,8 @@ sort(unique(mydata_clean$Analyte)) #list of lab analytes
 #mydata_clean$Analyte <- gsub(" \\[2C\\]$","",mydata_clean$Analyte)
 
 
-
-detections <- subset(mydata_clean, RESULT != "ND" ) #subset out the NDs 
+detections <- mydata_clean[mydata_clean$dnd == 1,]
+# detections <- subset(mydata_clean, RESULT != "ND" ) #subset out the NDs 
 #detections <- subset(mydata_clean, is.na(RESULT_clean) == FALSE ) #subset out the NDs 
 analytes <- unique(detections$Analyte) #list of detected analytes
 analytes

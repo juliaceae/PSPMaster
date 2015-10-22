@@ -86,7 +86,6 @@ mydata_clean <- ms4
 #manipulations to the combined LASAR/element/MS4 set
 mydata_clean$Station_Number <- as.numeric(mydata_clean$Station_Number)
 mydata_clean$RESULT <- str_trim(mydata_clean$RESULT)
-mydata_clean$RESULT.raw <- mydata_clean$RESULT
 mydata_clean$RESULT_clean.ug.l <- as.numeric(NA)
 mydata_clean$RESULT_clean.ug.l.subND <- as.numeric(NA)
 mydata_clean$Analyte <- str_trim(mydata_clean$Analyte)
@@ -172,7 +171,8 @@ mydata_clean$RESULT_MRL <- ifelse(is.na(mydata_clean$RESULT_clean),mydata_clean$
 
 #If multiple samples or methods used on one station on one day for one analyte, take the lowest MRL or highest detected concentration. 
 mydata_clean$code <- paste(mydata_clean$Station_Number,mydata_clean$date,mydata_clean$Analyte)
-mydata_clean$dnd <- ifelse(mydata_clean$RESULT_clean == 'ND',0,1)
+mydata_clean$dnd <- ifelse(is.na(mydata_clean$RESULT_clean), 0, 
+                           ifelse(mydata_clean$RESULT_clean >= mydata_clean$ReportLimit, 1, 0))
 sub <- with(mydata_clean, resolveMRLs(code, dnd, RESULT_MRL))
 mydata.wo.dup.MRLs <- mydata_clean[sub,]
 mydata.wo.dups <- remove.dups(mydata.wo.dup.MRLs)

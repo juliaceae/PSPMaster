@@ -34,6 +34,7 @@ remove.dups <- function(tname) {
 
 
 ####Run "P:\Rscripts\Criteria\ToxicsCriteriaPSP.R" first.
+source('P:/Rscripts/Criteria/ToxicsCriteriaPSP.R', encoding = 'UTF-8')
 #load("P:\\Rscripts\\Criteria\\2014-12-08\\min.Aquatic.Life.criteria.values_savedon2014-12-08.Rdata")
 outpath.criteria <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), "\\", sep="") 
 load(paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".Rdata"))
@@ -273,7 +274,8 @@ mydata_clean$MRL <- as.numeric(mydata_clean$MRL)
 
 mydata_clean$RESULT_MRL <- ifelse(is.na(mydata_clean$RESULT_clean),mydata_clean$MRL,mydata_clean$RESULT_clean)
 
-#If multiple samples or methods used on one station on one day for one analyte, take the lowest MRL or highest detected concentration. 
+#If multiple samples or methods used on one station on one day for one analyte, 
+#take the lowest MRL or highest detected concentration. 
 mydata_clean$code <- paste(mydata_clean$Station_Number,mydata_clean$date,mydata_clean$Analyte)
 mydata_clean$dnd <- ifelse(mydata_clean$RESULT == 'ND',0,1)
 sub <- with(mydata_clean, resolveMRLs(code, dnd, RESULT_MRL))

@@ -335,7 +335,16 @@ detections <- subset(mydata_clean_noV, is.na(RESULT_clean) == FALSE) #subset out
 index <-  (order(detections$Basin))
 detections <- detections[(index),]
 
-
+###########################
+for(i in 1:nrow(mydata_clean_noV)){
+  if(is.na(mydata_clean_noV$RESULT_clean.ug.l[i]) == TRUE){
+    mydata_clean_noV$RESULT_clean.ug.l.neg[i] <- -999  
+  }else{
+    if(is.na(mydata_clean_noV$RESULT_clean.ug.l[i]) == FALSE){
+      mydata_clean_noV$RESULT_clean.ug.l.neg[i] <- mydata_clean_noV$RESULT_clean.ug.l[i]
+    }
+  }
+}
 
 ###########################
 ####Output a summary table 
@@ -571,27 +580,20 @@ library(gridExtra)
 #ggplot 
 #single plots
 #stations sorted by shape
-
-B <- "Hood River"
-ii <- "Deisopropylatrazine"
-ii <- "Total Solids"
-B <- "Amazon"
-ii <- "Chlorpyrifos"
-B <- "Yamhill"
-B <- "Middle Rogue"
-ii <- "Bifenthrin"
-ii <- "Conductivity"
-ii <- "4,4´-DDE"
-
+B <- "Gresham"
+ii <- "Endrin Aldehyde"
 
 #20141023: Delete Walla Walla at the Frog results (because no detections) #32012
 View(mydata_clean_noV[mydata_clean_noV$Station_Number == 32012 & mydata_clean_noV$RESULT != "ND",])
 
-
-
+  
 for (B in unique(mydata_clean_noV$Basin)) {
   subset.B <- mydata_clean_noV[mydata_clean_noV$Station_Number != 32012,] #20141023 to fix the number of stations on WWatTheFrog.  
   subset.B <- subset(subset.B, Basin == B)
+  
+  #for (y in unique(mydata_clean_noV$year)){
+   # subset.B <- subset.B[subset.B$year == y, ]
+    
   for (ii in analytes){
     subset.ii <- subset(subset.B, Analyte == ii)
     if(length(subset.ii$RESULT > 0) & any(subset.ii$RESULT_clean.ug.l.neg > 0)){
@@ -601,10 +603,11 @@ for (B in unique(mydata_clean_noV$Basin)) {
       numeric.criterion.label <- min.criteria[min.criteria$criteria.Pollutant == ii,'label'] #find the lowest DEQ AL benchmark
       a <- ggplot(data = subset.ii, #data source is the subset of Basin and analyte
                   aes(x = date, #x axis is dates
-                      y = RESULT_clean.ug.l.neg, #y axis is numeric result
-                      group=Station_Description,
-                      shape=Station_Description, #change point shapes by station
-                      color=Station_Description)) #change point colors by station
+                      y = RESULT_clean.ug.l.neg
+                      ))#, #y axis is numeric result
+#                      group=Station_Description,
+#                      shape=Station_Description, #change point shapes by station
+#                      color=Station_Description)) #change point colors by station
       a <- a + geom_point(size = 5) #set the point size
       a <- a + xlab("") + ylab(("ug/L")) #write the labels
       a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
@@ -670,9 +673,11 @@ for (B in unique(mydata_clean_noV$Basin)) {
       a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
                                            x = 0, hjust = -0.1, vjust=0.1,
                                            gp = gpar(fontface = "italic", fontsize = 8))) 
+      ggsave(filename = "\\\\Deqhq1\\test.pdf", plot = a)
       ggsave(filename = paste0(outpath.plot.points, B, "_", ii, "_2014_savedon", Sys.Date(),".jpg"), plot = a)
     }
   }
+}
 }
 
 
@@ -683,6 +688,8 @@ for (B in unique(mydata_clean_noV$Basin)) {
 
 B <- "Hood River"
 
+for (y in unique(mydata_clean_noV$year)){
+  
 for(B in unique(mydata_clean_noV$Basin)){
   subset.B <- mydata_clean_noV[mydata_clean_noV$Station_Number != 32012,] #20141023 to fix the number of stations on WWatTheFrog.  
   subset.B <- subset(subset.B, Basin == B)
@@ -713,7 +720,7 @@ for(B in unique(mydata_clean_noV$Basin)){
     ggsave(filename = paste0(outpath.plot.points, "multiplot_", B, "_2014_savedon", Sys.Date(),".jpg"), plot = a, scale=1.5)
   }
 }
-
+}
 
 ##################################################################################
 

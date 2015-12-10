@@ -23,6 +23,7 @@ resolveMRLs <- function(ids, dnd, results){
   return(i0 | i1 | i2)
 }
 
+#function by Peter Bryant
 remove.dups <- function(tname) {
   no.dups <- aggregate(RESULT_MRL ~ code, data = tname, FUN = max)
   tname <- tname[!duplicated(tname$code),]
@@ -35,13 +36,13 @@ remove.dups <- function(tname) {
 
 ####Run "P:\Rscripts\Criteria\ToxicsCriteriaPSP.R" first.
 source('P:/Rscripts/Criteria/ToxicsCriteriaPSP.R', encoding = 'UTF-8')
-#load("P:\\Rscripts\\Criteria\\2014-12-08\\min.Aquatic.Life.criteria.values_savedon2014-12-08.Rdata")
-outpath.criteria <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), "\\", sep="") 
-load(paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".Rdata"))
+#these lines deprecated by changes in Sourced code above
+#outpath.criteria <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), "\\", sep="") 
+#load(paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".Rdata"))
 
 #Create and point to new directories
-new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\2014\\",Sys.Date(), sep="")) 
-outpath.plot.points <- paste("\\\\Deqhq1\\PSP\\Rscripts\\2014\\",Sys.Date(), "\\", sep="") 
+new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\2015\\",Sys.Date(), sep="")) 
+outpath.plot.points <- paste("\\\\Deqhq1\\PSP\\Rscripts\\2015\\",Sys.Date(), "\\", sep="") 
 setwd(outpath.plot.points)
 
 #### Load LASAR file ####
@@ -140,7 +141,7 @@ myQuery <- c()
 #for (i in 1:length(station.list)) {
 #qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Station_ID ='",station.list[i],"'  AND Client LIKE '%Pesticide%' AND Project LIKE '%Pudding%' AND (Work_Order LIKE '%130%' OR Work_Order LIKE '%131%') ")
 
-## This line retreives all the pesticide samples received by the lab in 2014.  The query language is written in SQL.
+## This line retreives all the pesticide samples received by the lab since 2012 (everything in element).  The query language is written in SQL.
 qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Client LIKE '%Pesticide%' ")
 ## This line adds the query language to the empty query.
 myQuery <- append(myQuery, qry)
@@ -154,7 +155,7 @@ for(i in 1:length(myQuery)) {
   rm(data)
 }
 
-unique(mydata$Work_Order)
+sort(unique(mydata$Work_Order))
 unique(mydata$Project)
 # ####check for new data
 # oldpath <-"\\\\Deqhq1\\PSP\\Rscripts\\2014\\old\\20140612\\"
@@ -189,10 +190,12 @@ mydata_clean <- rename(mydata,
                 
 #manipulations to the combined LASAR/element set
 mydata_clean$Station_Number <- as.numeric(mydata_clean$Station_Number)
-mydata_clean$RESULT <- str_trim(mydata_clean$RESULT)
 mydata_clean$RESULT.raw <- mydata_clean$RESULT
+mydata_clean$RESULT <- str_trim(mydata_clean$RESULT)
 mydata_clean$RESULT_clean.ug.l <- as.numeric(NA)
 mydata_clean$RESULT_clean.ug.l.subND <- as.numeric(NA)
+mydata_clean$Analyte <- str_trim(mydata_clean$Analyte)
+
 #Deleting the 2nd column [2C] tag from ELEMENT
 mydata_clean$Analyte <- gsub(" \\[2C\\]$","",mydata_clean$Analyte)
 
@@ -264,11 +267,13 @@ mydata_clean$RESULT_clean <- as.numeric(mydata_clean$RESULT)
 table(mydata_clean$Matrix)
 mydata_clean <- mydata_clean[!mydata_clean$Matrix %in% c('Ditch/Pond/Culvert/Drain','Groundwater','Municipal Effluent'),]
 mydata_clean <- mydata_clean[!mydata_clean$RESULT.raw %in% c('Co-elution'),]
+# Clean up data
 sort(unique(mydata_clean$RESULT)) #verify that the names in quotes in the command are the names being used in the datatable
 mydata_clean <- subset(mydata_clean, RESULT != "Void" & RESULT != "Cancelled")
 unique(mydata_clean$SampleType) #verify that the names in quotes in the command are the names being used in the datatable
 mydata_clean <- subset(mydata_clean, Station_Number != 10000)
 mydata_clean$MRL_raw <- mydata_clean$MRL
+#if no MRL, use the raw Result
 mydata_clean[is.na(mydata_clean$MRL),'MRL'] <- gsub("<","",mydata_clean[is.na(mydata_clean$MRL),'RESULT.raw'])
 mydata_clean$MRL <- as.numeric(mydata_clean$MRL)
 
@@ -283,8 +288,9 @@ mydata.wo.dup.MRLs <- mydata_clean[sub,]
 mydata.wo.dups <- remove.dups(mydata.wo.dup.MRLs)
 
 
-##########backup copy##########################################################
+# back to the mydata_clean convention
 mydata_clean_bu <- mydata_clean
+mydata_clean <- mydata.wo.dups
 ####################################################################
 
 ####Subset and set aside the field duplicates ----
@@ -297,7 +303,7 @@ unique(mydata_clean$SampleType)
 unique(mydata_clean$Matrix) 
 Sediment <- mydata_clean[mydata_clean$Matrix == "Sediment",]
 POCIS <- mydata_clean[mydata_clean$Matrix == "POCIS" | mydata_clean$Matrix == "POCIS - Surface Water", ]
-SPMD <- mydata_clean[mydata_clean$Matrix == "SPMD", ]
+SPMD <- mydata_clean[mydata_clean$Matrix == "SPMD" | mydata_clean$Matrix == "SPMD::LAB", ]
 mydata_clean <- mydata_clean[mydata_clean$Matrix == "River/Stream" | mydata_clean$Matrix == "Surface water", ]
 
 # FD <- subset(mydata_clean, SampleType %in% c("Field Duplicate", "Field Duplicate::FD", 'Sample - Field Duplicate') & RESULT_clean != "NA") #dataframe of all detected FDs
@@ -357,12 +363,12 @@ sort(unique(mydata_clean$Analyte)) #list of lab analytes
 #Deleting the 2nd column [2C] tag from ELEMENT
 #mydata_clean$Analyte <- gsub(" \\[2C\\]$","",mydata_clean$Analyte)
 
-
+# subset detections
 detections <- mydata_clean[mydata_clean$dnd == 1,]
 # detections <- subset(mydata_clean, RESULT != "ND" ) #subset out the NDs 
 #detections <- subset(mydata_clean, is.na(RESULT_clean) == FALSE ) #subset out the NDs 
 analytes <- unique(detections$Analyte) #list of detected analytes
-analytes
+sort(analytes)
 ####obtain the sampling dates
 sort(unique(mydata_clean$date))
 
@@ -379,9 +385,8 @@ min.criteria <- rename(min.criteria , replace = c('Pollutant' = 'criteria.Pollut
 criteria.pollutant.list <- unique(min.criteria$criteria.Pollutant)
 Has.min.criteria <- analytes %in% criteria.pollutant.list #Caution!!"analytes" comes from the detections subset only - so NOT all the available criteria will be populated into later datasets!! It WILL skip mismatched (between LEAD analyte name and criteria name) nondetects!!
 check <- data.frame(Has.min.criteria, analytes)
-check  #no minimum criteria/benchmarks exist for Total Solids or DEET or Pronamide or 2,6-BAM, Etridiazole, Mexacarbate, Triadimefon, 3,5-Dichlorobenzoic acid
-#end recursion 
-min.criteria[min.criteria$criteria.Pollutant == "4,4`-DDE", "criteria.Pollutant"] <- "4,4´-DDE" #example for substitutions (first is old name in criteria list, second is new analyte name)
+check <- check[order(analytes),]   #no minimum criteria/benchmarks exist for Total Solids or DEET or Pronamide or 2,6-BAM, Etridiazole, Mexacarbate, Triadimefon, 3,5-Dichlorobenzoic acid
+check#end recursion 
 min.criteria[min.criteria$criteria.Pollutant == "aminomethyl phosphoric acid (AMPA) Glyphosate degradate", "criteria.Pollutant"] <- "Aminomethylphosphonic acid (AMPA)" #example for substitutions (first is old name in criteria list, second is new analyte name)
 min.criteria[min.criteria$criteria.Pollutant == '2,6-Dichlorobenzamide (BAM)','criteria.Pollutant'] <- "2,6-Dichlorobenzamide" #example for substitutions (first is old name in criteria list, second is new analyte name)
 min.criteria[min.criteria$criteria.Pollutant == 'Endosulfan Sulfate','criteria.Pollutant'] <- "Endosulfan sulfate" #example for substitutions (first is old name in criteria list, second is new analyte name)

@@ -154,6 +154,7 @@ for(i in 1:length(myQuery)) {
   ifelse(i==1,mydata <- data, mydata <- rbind(mydata,data))
   rm(data)
 }
+element <- mydata
 
 sort(unique(mydata$Work_Order))
 unique(mydata$Project)
@@ -306,75 +307,33 @@ POCIS <- mydata_clean[mydata_clean$Matrix == "POCIS" | mydata_clean$Matrix == "P
 SPMD <- mydata_clean[mydata_clean$Matrix == "SPMD" | mydata_clean$Matrix == "SPMD::LAB", ]
 mydata_clean <- mydata_clean[mydata_clean$Matrix == "River/Stream" | mydata_clean$Matrix == "Surface water", ]
 
-# FD <- subset(mydata_clean, SampleType %in% c("Field Duplicate", "Field Duplicate::FD", 'Sample - Field Duplicate') & RESULT_clean != "NA") #dataframe of all detected FDs
-# unique(FD$RESULT_clean)
-# Voids <- (subset(mydata_clean, RESULT == "Void" & RESULT != "Cancelled"))
-# write.csv(Voids, paste0("\\\\deqhq1\\PSP\\Rscripts\\Alldates\\","Voids_Alldates_saved_on_", Sys.Date(),".csv")) 
-
-
-####Make new subset without the Voids, Field Dupes and Blanks.
-
-# mydata_clean <- subset(mydata_clean, SampleType != "Field Duplicate")
-# mydata_clean <- subset(mydata_clean, SampleType != "Field Duplicate::FD")
-# mydata_clean <- subset(mydata_clean, SampleType != "Sample - Field Duplicate")
-
-####Find out which field duplicates are larger than the field primaries. Make a table
-# df <- NULL
-# df.fp <- NULL
-# for(i in 1:nrow(FD)){
-#   FD2 <- FD[i,]
-#   FP <- subset(mydata_clean, Analyte == FD$Analyte[i] & date == FD$date[i] & Station_Number == FD$Station_Number[i] & SampleType %in% c("Field Primary", "Field Primary::FP", "Sample - Field Primary")) #find the matching field primary
-#   if(nrow(FP) > 1) print("more than one match") #check that getting one match only
-#   FP.result <- FP$RESULT_clean #get just the number
-#   if(is.na(FP.result) == TRUE){
-#     df <- rbind(df, FD2)    
-#     df.fp <- rbind(df.fp, FP)
-#   }else{  
-#     if(FD$RESULT_clean[i] > FP.result){
-#       df <- rbind(df, FD2)
-#       df.fp <- rbind(df.fp, FP)
-#     }
-#   }
-# }
-
-#####################
-# FD2 <- FD[1,]
-# FP <- mydata_clean[mydata_clean$SampleType %in% c("Field Primary", "Field Primary::FP", "Sample - Field Primary"),]
-# 
-# FP <- mydata_clean[mydata_clean$Station_Number == 28575,]
-# FP <- FP[FP$Analyte == "Total Solids",]
-# FP <- FP[FP$date == "2012-03-26",]
-# FP <- FP[FP$SampleType %in% c("Field Primary", "Field Primary::FP", "Sample - Field Primary"),]
-
-####Remove Field Primaries that are less than Field Duplicates
-# index <- row.names(df.fp) #row.names of the field primaries in order
-# for(aa in index){
-#   mydata_clean[as.character(aa),] <- NA #NA out the field primaries
-# }
-# mydata_clean <- subset(mydata_clean, is.na(Station_Number) == FALSE)
-# 
-# ####Add Field Duplicates that are more than Field Primaries
-# mydata_clean <- rbind(df,mydata_clean)
-
 
 ####Subset out not needed data
 station.list <- unique(mydata_clean$Station_Number) #list of stations
 sort(unique(mydata_clean$Analyte)) #list of lab analytes
-#Deleting the 2nd column [2C] tag from ELEMENT
-#mydata_clean$Analyte <- gsub(" \\[2C\\]$","",mydata_clean$Analyte)
+
+######################################
+Names.match <- read.csv("\\\\deqhq1\\PSP\\Rscripts\\Criteria\\1998-2015NameMatchUp.csv", stringsAsFactors=FALSE)
+mmm <- merge(x= mydata_clean, y= Names.match, by.x= "Analyte", by.y= "Analyte.Name", all.x=TRUE)
+mmm$Analyte2 <- ifelse(mmm$Element.Name == "", mmm$Analyte, mmm$Element.Name) 
+
+mmm$Analyte <- mmm$Analyte2
+
+detections <- mmm[mmm$dnd == 1,]
+analytes <- unique(detections$Analyte) #list of detected analytes
+
+#mydata_clean <- mmm
+######################################
 
 # subset detections
-detections <- mydata_clean[mydata_clean$dnd == 1,]
-# detections <- subset(mydata_clean, RESULT != "ND" ) #subset out the NDs 
-#detections <- subset(mydata_clean, is.na(RESULT_clean) == FALSE ) #subset out the NDs 
-analytes <- unique(detections$Analyte) #list of detected analytes
-sort(analytes)
-####obtain the sampling dates
-sort(unique(mydata_clean$date))
+# detections <- mydata_clean[mydata_clean$dnd == 1,]
+# analytes <- unique(detections$Analyte) #list of detected analytes
+# analytes <- unique(mmm$Analyte) #list of detected analytes
+# sort(analytes)
 
 ####Establish Benchmarks and Exceedances
 ####Currently doing this step in "ToxicsCriteriaPSP.R"  
-min.criteria <- min.AQL.1
+min.criteria <- min.AQL.1 
 min.criteria <- rename(min.criteria , replace = c('Pollutant' = 'criteria.Pollutant',
                                                   'min.state.AQL' = 'min.DEQ.criteria', 
                                                   'min.other.AQL' = 'min.EPA.criteria', 
@@ -382,21 +341,30 @@ min.criteria <- rename(min.criteria , replace = c('Pollutant' = 'criteria.Pollut
 ######################################
 #matching the analytes name with the min.criteria name----
 #recursive until Has.min.criteria is all TRUE 
+
+
+min.criteria <- merge(x= min.criteria, y=Names.match, by.x= "criteria.Pollutant", by.y= "Karas.Name", all.x=TRUE)
+min.criteria$criteria.Pollutant2 <- ifelse(min.criteria$Karas.Name == "", min.criteria$criteria.Pollutant, min.criteria$Element.Name) 
+
 criteria.pollutant.list <- unique(min.criteria$criteria.Pollutant)
 Has.min.criteria <- analytes %in% criteria.pollutant.list #Caution!!"analytes" comes from the detections subset only - so NOT all the available criteria will be populated into later datasets!! It WILL skip mismatched (between LEAD analyte name and criteria name) nondetects!!
 check <- data.frame(Has.min.criteria, analytes)
 check <- check[order(analytes),]   #no minimum criteria/benchmarks exist for Total Solids or DEET or Pronamide or 2,6-BAM, Etridiazole, Mexacarbate, Triadimefon, 3,5-Dichlorobenzoic acid
 check#end recursion 
-min.criteria[min.criteria$criteria.Pollutant == "aminomethyl phosphoric acid (AMPA) Glyphosate degradate", "criteria.Pollutant"] <- "Aminomethylphosphonic acid (AMPA)" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[min.criteria$criteria.Pollutant == '2,6-Dichlorobenzamide (BAM)','criteria.Pollutant'] <- "2,6-Dichlorobenzamide" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[min.criteria$criteria.Pollutant == 'Endosulfan Sulfate','criteria.Pollutant'] <- "Endosulfan sulfate" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[min.criteria$criteria.Pollutant == '4,4`-DDD','criteria.Pollutant'] <- "4,4´-DDD" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[min.criteria$criteria.Pollutant == '4,4`-DDE','criteria.Pollutant'] <- "4,4´-DDE" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[min.criteria$criteria.Pollutant == 'Propoxur','criteria.Pollutant'] <- "Baygon (Propoxur)" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[min.criteria$criteria.Pollutant == 'MCPP-p DMAS','criteria.Pollutant'] <- "MCPP" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[min.criteria$criteria.Pollutant == 'Acifluorfen (Sodium)','criteria.Pollutant'] <- "Acifluorfen" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[min.criteria$criteria.Pollutant == 'MCPA EHE','criteria.Pollutant'] <- "MCPA" #example for substitutions (first is old name in criteria list, second is new analyte name)
-min.criteria[min.criteria$criteria.Pollutant == 'Metsulfuron','criteria.Pollutant'] <- "Metsulfuron Methyl" #example for substitutions (first is old name in criteria list, second is new analyte name)
+
+
+######################################
+#deprecated by above table merge and replace.
+# min.criteria[min.criteria$criteria.Pollutant == "aminomethyl phosphoric acid (AMPA) Glyphosate degradate", "criteria.Pollutant"] <- "Aminomethylphosphonic acid (AMPA)" #example for substitutions (first is old name in criteria list, second is new analyte name)
+# min.criteria[min.criteria$criteria.Pollutant == '2,6-Dichlorobenzamide (BAM)','criteria.Pollutant'] <- "2,6-Dichlorobenzamide" #example for substitutions (first is old name in criteria list, second is new analyte name)
+# min.criteria[min.criteria$criteria.Pollutant == 'Endosulfan Sulfate','criteria.Pollutant'] <- "Endosulfan sulfate" #example for substitutions (first is old name in criteria list, second is new analyte name)
+# min.criteria[min.criteria$criteria.Pollutant == '4,4`-DDD','criteria.Pollutant'] <- "4,4´-DDD" #example for substitutions (first is old name in criteria list, second is new analyte name)
+# min.criteria[min.criteria$criteria.Pollutant == '4,4`-DDE','criteria.Pollutant'] <- "4,4´-DDE" #example for substitutions (first is old name in criteria list, second is new analyte name)
+# min.criteria[min.criteria$criteria.Pollutant == 'Propoxur','criteria.Pollutant'] <- "Baygon (Propoxur)" #example for substitutions (first is old name in criteria list, second is new analyte name)
+# min.criteria[min.criteria$criteria.Pollutant == 'MCPP-p DMAS','criteria.Pollutant'] <- "MCPP" #example for substitutions (first is old name in criteria list, second is new analyte name)
+# min.criteria[min.criteria$criteria.Pollutant == 'Acifluorfen (Sodium)','criteria.Pollutant'] <- "Acifluorfen" #example for substitutions (first is old name in criteria list, second is new analyte name)
+# min.criteria[min.criteria$criteria.Pollutant == 'MCPA EHE','criteria.Pollutant'] <- "MCPA" #example for substitutions (first is old name in criteria list, second is new analyte name)
+# min.criteria[min.criteria$criteria.Pollutant == 'Metsulfuron','criteria.Pollutant'] <- "Metsulfuron Methyl" #example for substitutions (first is old name in criteria list, second is new analyte name)
 #min.criteria[min.criteria$criteria.Pollutant == 'Triazine DIA degredate','criteria.Pollutant'] <- "Deisopropylatrazine" #example for substitutions (first is old name in criteria list, second is new analyte name)
 #min.criteria[min.criteria$criteria.Pollutant == 'Triazine DEA degredate','criteria.Pollutant'] <- "Desethylatrazine" #example for substitutions (first is old name in criteria list, second is new analyte name)
 #change min.criteria table - replace criteria value for 2,4-D with 2,4-D acids and salts

@@ -314,15 +314,11 @@ sort(unique(mydata_clean$Analyte)) #list of lab analytes
 
 ######################################
 Names.match <- read.csv("\\\\deqhq1\\PSP\\Rscripts\\Criteria\\1998-2015NameMatchUp.csv", stringsAsFactors=FALSE)
-mmm <- merge(x= mydata_clean, y= Names.match, by.x= "Analyte", by.y= "Analyte.Name", all.x=TRUE)
-mmm$Analyte2 <- ifelse(mmm$Element.Name == "", mmm$Analyte, mmm$Element.Name) 
+mydata_clean <- merge(x= mydata_clean, y= Names.match, by.x= "Analyte", by.y= "Analyte.Name", all.x=TRUE)
+mydata_clean$Analyte <- ifelse(mydata_clean$Element.Name == "", mydata_clean$Analyte, mydata_clean$Element.Name) 
 
-mmm$Analyte <- mmm$Analyte2
-
-detections <- mmm[mmm$dnd == 1,]
+detections <- mydata_clean[mydata_clean$dnd == 1,]
 analytes <- unique(detections$Analyte) #list of detected analytes
-
-#mydata_clean <- mmm
 ######################################
 
 # subset detections
@@ -342,10 +338,6 @@ min.criteria <- rename(min.criteria , replace = c('Pollutant' = 'criteria.Pollut
 #matching the analytes name with the min.criteria name----
 #recursive until Has.min.criteria is all TRUE 
 
-
-min.criteria <- merge(x= min.criteria, y=Names.match, by.x= "criteria.Pollutant", by.y= "Karas.Name", all.x=TRUE)
-min.criteria$criteria.Pollutant2 <- ifelse(min.criteria$Karas.Name == "", min.criteria$criteria.Pollutant, min.criteria$Element.Name) 
-
 criteria.pollutant.list <- unique(min.criteria$criteria.Pollutant)
 Has.min.criteria <- analytes %in% criteria.pollutant.list #Caution!!"analytes" comes from the detections subset only - so NOT all the available criteria will be populated into later datasets!! It WILL skip mismatched (between LEAD analyte name and criteria name) nondetects!!
 check <- data.frame(Has.min.criteria, analytes)
@@ -354,17 +346,56 @@ check#end recursion
 
 
 ######################################
-#deprecated by above table merge and replace.
-# min.criteria[min.criteria$criteria.Pollutant == "aminomethyl phosphoric acid (AMPA) Glyphosate degradate", "criteria.Pollutant"] <- "Aminomethylphosphonic acid (AMPA)" #example for substitutions (first is old name in criteria list, second is new analyte name)
-# min.criteria[min.criteria$criteria.Pollutant == '2,6-Dichlorobenzamide (BAM)','criteria.Pollutant'] <- "2,6-Dichlorobenzamide" #example for substitutions (first is old name in criteria list, second is new analyte name)
-# min.criteria[min.criteria$criteria.Pollutant == 'Endosulfan Sulfate','criteria.Pollutant'] <- "Endosulfan sulfate" #example for substitutions (first is old name in criteria list, second is new analyte name)
-# min.criteria[min.criteria$criteria.Pollutant == '4,4`-DDD','criteria.Pollutant'] <- "4,4´-DDD" #example for substitutions (first is old name in criteria list, second is new analyte name)
-# min.criteria[min.criteria$criteria.Pollutant == '4,4`-DDE','criteria.Pollutant'] <- "4,4´-DDE" #example for substitutions (first is old name in criteria list, second is new analyte name)
-# min.criteria[min.criteria$criteria.Pollutant == 'Propoxur','criteria.Pollutant'] <- "Baygon (Propoxur)" #example for substitutions (first is old name in criteria list, second is new analyte name)
-# min.criteria[min.criteria$criteria.Pollutant == 'MCPP-p DMAS','criteria.Pollutant'] <- "MCPP" #example for substitutions (first is old name in criteria list, second is new analyte name)
-# min.criteria[min.criteria$criteria.Pollutant == 'Acifluorfen (Sodium)','criteria.Pollutant'] <- "Acifluorfen" #example for substitutions (first is old name in criteria list, second is new analyte name)
-# min.criteria[min.criteria$criteria.Pollutant == 'MCPA EHE','criteria.Pollutant'] <- "MCPA" #example for substitutions (first is old name in criteria list, second is new analyte name)
-# min.criteria[min.criteria$criteria.Pollutant == 'Metsulfuron','criteria.Pollutant'] <- "Metsulfuron Methyl" #example for substitutions (first is old name in criteria list, second is new analyte name)
+#2,4-D #Addessed in ToxicsCriteriaPSP.R
+#Rest of benchmark name mismatches are addressed here or commented out if there is no benchmark (currently)
+#2,4,5-TP (Silvex)
+min.criteria[min.criteria$criteria.Pollutant == '2,6-Dichlorobenzamide (BAM)','criteria.Pollutant'] <- "2,6-Dichlorobenzamide" #example for substitutions (first is old name in criteria list, second is new analyte name)
+#3,5-Dichlorobenzoic acid
+min.criteria[min.criteria$criteria.Pollutant == '4,4`-DDD','criteria.Pollutant'] <- "4,4´-DDD" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == '4,4`-DDE','criteria.Pollutant'] <- "4,4´-DDE" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == '4,4`-DDT','criteria.Pollutant'] <- "4,4´-DDT" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == 'Acifluorfen (Sodium)','criteria.Pollutant'] <- "Acifluorfen" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == "aminomethyl phosphoric acid (AMPA) Glyphosate degradate", "criteria.Pollutant"] <- "Aminomethylphosphonic acid (AMPA)" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == "Azinphos methyl", "criteria.Pollutant"] <- "Azinphos-methyl (Guthion)" #example for substitutions (first is old name in criteria list, second is new analyte name)
+#Azinphos Methyl Oxygen Analog
+min.criteria[min.criteria$criteria.Pollutant == "Propoxur", "criteria.Pollutant"] <- "Baygon (Propoxur)" #example for substitutions (first is old name in criteria list, second is new analyte name)
+#Chlorpyrifos oxon
+#cis-Chlordane
+#Conductivity
+#DCPA acid metabolites
+#DCPA acid metabolites(a)
+#DEET
+min.criteria[min.criteria$criteria.Pollutant == '2,6-Dichlorobenzamide (BAM)','criteria.Pollutant'] <- "2,6-Dichlorobenzamide" #example for substitutions (first is old name in criteria list, second is new analyte name)
+deltaBHC <- min.criteria[1,] #Table 31 guidance value
+deltaBHC[,1] <- "delta-BHC"
+deltaBHC[,2] <- as.numeric()
+deltaBHC[,3] <- as.numeric()
+deltaBHC[,4] <- 100
+min.criteria <- rbind(min.criteria, deltaBHC)
+#Dissolved Oxygen
+#Dissolved Oxygen, Saturation
+min.criteria[min.criteria$criteria.Pollutant == 'Endosulfan Sulfate','criteria.Pollutant'] <- "Endosulfan sulfate" #example for substitutions (first is old name in criteria list, second is new analyte name)
+#Endrin aldehyde
+#Etridiazole
+min.criteria[min.criteria$criteria.Pollutant == "Esfenvalerate", "criteria.Pollutant"] <- "Fenvalerate+Esfenvalerate" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == "Lindane", "criteria.Pollutant"] <- "gamma-BHC (Lindane)" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == "Heptachlor Epoxide", "criteria.Pollutant"] <- "Heptachlor epoxide" #example for substitutions (first is old name in criteria list, second is new analyte name)
+#Malathion Oxygen Analog
+min.criteria[min.criteria$criteria.Pollutant == 'MCPA EHE','criteria.Pollutant'] <- "MCPA" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == 'MCPP-p DMAS','criteria.Pollutant'] <- "MCPP" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == 'Methyl parathion','criteria.Pollutant'] <- "Methylparathion" #example for substitutions (first is old name in criteria list, second is new analyte name)
+min.criteria[min.criteria$criteria.Pollutant == 'Metsulfuron','criteria.Pollutant'] <- "Metsulfuron Methyl" #example for substitutions (first is old name in criteria list, second is new analyte name)
+#Mexacarbate
+#Phosmet Oxygen Analog
+#Pronamide
+#Simetryn
+#Temperature
+#Terbutryn (Prebane)
+min.criteria[min.criteria$criteria.Pollutant == 'Terbuthylazine','criteria.Pollutant'] <- "Terbutylazine" #example for substitutions (first is old name in criteria list, second is new analyte name)
+#Total Solids
+#Turbidity
+
+
 #min.criteria[min.criteria$criteria.Pollutant == 'Triazine DIA degredate','criteria.Pollutant'] <- "Deisopropylatrazine" #example for substitutions (first is old name in criteria list, second is new analyte name)
 #min.criteria[min.criteria$criteria.Pollutant == 'Triazine DEA degredate','criteria.Pollutant'] <- "Desethylatrazine" #example for substitutions (first is old name in criteria list, second is new analyte name)
 #change min.criteria table - replace criteria value for 2,4-D with 2,4-D acids and salts
@@ -393,12 +424,11 @@ for(i in 1:nrow(min.criteria)){
     }
   }
 }
-#df[is.na(df$col),’col’] <- 0
+
 min.criteria[min.criteria$criteria.Pollutant=="4,4´-DDE", "label"] <- paste0("\nlowest DEQ WQS= 0.001 ug/L\n*criterion applies to DDT and its metabolites")
 min.criteria[min.criteria$criteria.Pollutant=="4,4´-DDD", "label"] <- paste0("\nlowest DEQ WQS= 0.001 ug/L\n*criterion applies to DDT and its metabolites")
 min.criteria[min.criteria$criteria.Pollutant=="Atrazine", "label"] <- paste0("\nEPA benchmark = 1 ug/L\nproposed EPA benchmark = 0.001 ug/L")
 min.criteria[min.criteria$criteria.Pollutant=="Simazine", "label"] <- paste0("\nEPA benchmark = 36 ug/L\nproposed EPA benchmark = 2.24 ug/L")
-######################################
 
 ####duplicate dataset.
 mydata_clean_noV <- mydata_clean
@@ -408,68 +438,57 @@ mydata_clean_noV <- mydata_clean
 unique(mydata_clean_noV$Units)
 #[1] "ng/L" "mg/L" "µg/L"
 #[1] "ng/L" "mg/L" "µg/L"
+#[1] "µg/L"     "ng/L"     "mg/L" 
 
-for(i in 1:nrow(mydata_clean_noV)){
-  if(mydata_clean_noV$Units[i] == "mg/L"){ 
-    mydata_clean_noV$RESULT_clean.ug.l[i] <- mydata_clean_noV$RESULT_clean[i]*1000 #mg to ug
-  } else {
-    if(mydata_clean_noV$Units[i] == "ng/L"){
-      mydata_clean_noV$RESULT_clean.ug.l[i] <- mydata_clean_noV$RESULT_clean[i]/1000 #ng to ug
-    } else {
-      if(mydata_clean_noV$Units[i] == "µg/L"){
-        mydata_clean_noV$RESULT_clean.ug.l[i] <- mydata_clean_noV$RESULT_clean[i] #µg to ug
-      } else {
-        mydata_clean_noV$RESULT_clean.ug.l[i] <- NA #some other units (e.g. conductivity)
-      }
-    }
-  }
-}
+mydata_clean_noV[mydata_clean_noV$Units == "mg/L", "RESULT_clean.ug.l"] <-mydata_clean_noV[mydata_clean_noV$Units == "mg/L", ]$RESULT_clean*1000
+mydata_clean_noV[mydata_clean_noV$Units == "ng/L", "RESULT_clean.ug.l"] <- mydata_clean_noV[mydata_clean_noV$Units == "ng/L", ]$RESULT_clean/1000
+mydata_clean_noV[mydata_clean_noV$Units == "µg/L", "RESULT_clean.ug.l"] <- mydata_clean_noV[mydata_clean_noV$Units == "µg/L", ]$RESULT_clean
 
 ####Substitute the NDs for zeroes in a new column
-for(i in 1:nrow(mydata_clean_noV)){
-  if(mydata_clean_noV$RESULT[i] == "ND"){
-    mydata_clean_noV$RESULT_clean.ug.l.subND[i] <- 0  
-  }else{
-    if(mydata_clean_noV$RESULT[i] !="ND"){
-      mydata_clean_noV$RESULT_clean.ug.l.subND[i] <- mydata_clean_noV$RESULT_clean.ug.l[i]
-    }
-  }
-}
+mydata_clean_noV[mydata_clean_noV$RESULT == "ND", "RESULT_clean.ug.l.subND"] <- 0
+mydata_clean_noV[mydata_clean_noV$RESULT != "ND", "RESULT_clean.ug.l.subND"] <- mydata_clean_noV[mydata_clean_noV$RESULT != "ND", ]$RESULT_clean.ug.l
 
 ####Determine minimum benchmark exceedances
-for(i in 1:nrow(mydata_clean_noV)){
-  ccc <- mydata_clean_noV$Analyte[i]
-  ddd <- match(ccc, min.criteria$criteria.Pollutant)
-  mydata_clean_noV$benchmark.DEQ[i] <- as.numeric(min.criteria$min.DEQ.criteria[ddd])   #make a column of appropriate benchmark
-  mydata_clean_noV$benchmark.EPA[i] <- as.numeric(min.criteria$min.EPA.criteria[ddd])   #make a column of appropriate benchmark  
-  mydata_clean_noV$relevant.AL.benchmark[i] <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[ddd])   #make a column of appropriate benchmark
-  mydata_clean_noV$final_digress[i] <- ifelse(mydata_clean_noV$RESULT_clean.ug.l[i] > mydata_clean_noV$relevant.AL.benchmark[i], 1,0) #make column with digression stations (T/F)
-}
+
+########
+  ddd <- match(mydata_clean_noV$Analyte, min.criteria$criteria.Pollutant)
+  mydata_clean_noV$benchmark.DEQ <- as.numeric(min.criteria$min.DEQ.criteria[ddd])   #make a column of appropriate benchmark
+  mydata_clean_noV$benchmark.EPA <- as.numeric(min.criteria$min.EPA.criteria[ddd])   #make a column of appropriate benchmark  
+  mydata_clean_noV$relevant.AL.benchmark <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[ddd])   #make a column of appropriate benchmark
+  mydata_clean_noV$final_digress2 <- ifelse(mydata_clean_noV$RESULT_clean.ug.l > mydata_clean_noV$relevant.AL.benchmark, 1,0) #make column with digression stations (T/F)
+
+# for(i in 1:nrow(mydata_clean_noV)){
+#   ccc <- mydata_clean_noV$Analyte[i]
+#   ddd <- match(ccc, min.criteria$criteria.Pollutant)
+#   mydata_clean_noV$benchmark.DEQ[i] <- as.numeric(min.criteria$min.DEQ.criteria[ddd])   #make a column of appropriate benchmark
+#   mydata_clean_noV$benchmark.EPA[i] <- as.numeric(min.criteria$min.EPA.criteria[ddd])   #make a column of appropriate benchmark  
+#   mydata_clean_noV$relevant.AL.benchmark[i] <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[ddd])   #make a column of appropriate benchmark
+#   mydata_clean_noV$final_digress[i] <- ifelse(mydata_clean_noV$RESULT_clean.ug.l[i] > mydata_clean_noV$relevant.AL.benchmark[i], 1,0) #make column with digression stations (T/F)
+# }
 digressions <- (mydata_clean_noV[is.na(mydata_clean_noV$final_digress) == FALSE & mydata_clean_noV$final_digress == 1,])
 index <-  (order(digressions$Basin))
 digressions <- digressions[(index),]
-#digressions
+#View(digressions)
 
 #### Determine percent digression of criteria
 mydata_clean_noV$percent.benchmark <- mydata_clean_noV$RESULT_clean.ug.l/mydata_clean_noV$relevant.AL.benchmark
 mydata_clean_noV$exceed.type <- NA
 
-for(i in 1:nrow(mydata_clean_noV)){
-  if(is.na(mydata_clean_noV$RESULT_clean[i]) == FALSE & is.na(mydata_clean_noV$relevant.AL.benchmark[i]) == TRUE){ #result is a detection AND benchmark does NOT exist
-    mydata_clean_noV$exceed.type[i] <- "no benchmark available"
+  if(is.na(mydata_clean_noV$RESULT_clean) == FALSE & is.na(mydata_clean_noV$relevant.AL.benchmark) == TRUE){ #result is a detection AND benchmark does NOT exist
+    mydata_clean_noV$exceed.type <- "no benchmark available"
   }else{
-    if(is.na(mydata_clean_noV$percent.benchmark[i])==FALSE){ #percent.benchmark is a real number
-      if(mydata_clean_noV$percent.benchmark[i] < 0.1){
-        mydata_clean_noV$exceed.type[i] <- "less than ten percent of benchmark"  
+    if(is.na(mydata_clean_noV$percent.benchmark)==FALSE){ #percent.benchmark is a real number
+      if(mydata_clean_noV$percent.benchmark < 0.1){
+        mydata_clean_noV$exceed.type <- "less than ten percent of benchmark"  
       }else{
-        if(mydata_clean_noV$percent.benchmark[i] >= 0.1 & mydata_clean_noV$percent.benchmark[i] < 0.5){
-          mydata_clean_noV$exceed.type[i] <- "between ten and fifty percent of benchmark"
+        if(mydata_clean_noV$percent.benchmark >= 0.1 & mydata_clean_noV$percent.benchmark[i] < 0.5){
+          mydata_clean_noV$exceed.type <- "between ten and fifty percent of benchmark"
         }else{
-          if(mydata_clean_noV$percent.benchmark[i] >= 0.5 & mydata_clean_noV$percent.benchmark[i] < 1.0){
-            mydata_clean_noV$exceed.type[i] <- "between fifty and 100 percent of benchmark"
+          if(mydata_clean_noV$percent.benchmark >= 0.5 & mydata_clean_noV$percent.benchmark[i] < 1.0){
+            mydata_clean_noV$exceed.type <- "between fifty and 100 percent of benchmark"
           }else{
-            if(mydata_clean_noV$percent.benchmark[i] > 1.0){
-              mydata_clean_noV$exceed.type[i] <- "greater than 100 percent of benchmark"
+            if(mydata_clean_noV$percent.benchmark > 1.0){
+              mydata_clean_noV$exceed.type <- "greater than 100 percent of benchmark"
             }
           }
         }
@@ -477,6 +496,29 @@ for(i in 1:nrow(mydata_clean_noV)){
     }
   }
 }
+#for(i in 1:nrow(mydata_clean_noV)){
+#   if(is.na(mydata_clean_noV$RESULT_clean[i]) == FALSE & is.na(mydata_clean_noV$relevant.AL.benchmark[i]) == TRUE){ #result is a detection AND benchmark does NOT exist
+#     mydata_clean_noV$exceed.type[i] <- "no benchmark available"
+#   }else{
+#     if(is.na(mydata_clean_noV$percent.benchmark[i])==FALSE){ #percent.benchmark is a real number
+#       if(mydata_clean_noV$percent.benchmark[i] < 0.1){
+#         mydata_clean_noV$exceed.type[i] <- "less than ten percent of benchmark"  
+#       }else{
+#         if(mydata_clean_noV$percent.benchmark[i] >= 0.1 & mydata_clean_noV$percent.benchmark[i] < 0.5){
+#           mydata_clean_noV$exceed.type[i] <- "between ten and fifty percent of benchmark"
+#         }else{
+#           if(mydata_clean_noV$percent.benchmark[i] >= 0.5 & mydata_clean_noV$percent.benchmark[i] < 1.0){
+#             mydata_clean_noV$exceed.type[i] <- "between fifty and 100 percent of benchmark"
+#           }else{
+#             if(mydata_clean_noV$percent.benchmark[i] > 1.0){
+#               mydata_clean_noV$exceed.type[i] <- "greater than 100 percent of benchmark"
+#             }
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
 
 ####check that these analytes truly do NOT have a benchmark value
 aaa <- (mydata_clean_noV[mydata_clean_noV$exceed.type == "no benchmark available",])

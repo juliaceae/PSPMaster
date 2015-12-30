@@ -41,8 +41,8 @@ source('P:/Rscripts/Criteria/ToxicsCriteriaPSP.R', encoding = 'UTF-8')
 #load(paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".Rdata"))
 
 #Create and point to new directories
-new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\2015\\",Sys.Date(), sep="")) 
-outpath.plot.points <- paste("\\\\Deqhq1\\PSP\\Rscripts\\2015\\",Sys.Date(), "\\", sep="") 
+new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), sep="")) 
+outpath.plot.points <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", sep="") 
 setwd(outpath.plot.points)
 
 #### Load LASAR file ####
@@ -254,6 +254,7 @@ for (i in 1:length(lst.split)){
 ####Check the report$Sub for unacceptable substitutions.  MANUAL clean up with final values.
 report[report$Case == "0.01Est", "Sub"] <-  0.01
 report[report$Case == "None detected", "Sub"] <-  "ND"
+report[report$Case == "Co-elution", "Sub"] <-  "Void"
 
 ####Also, create a column called "RESULT".  Populate column with the substituted values.
 mydata_clean$RESULT <- sub.cases(mydata_clean$RESULT.raw, report) #just use the report object created in step 02_LASAR_clean.R
@@ -445,8 +446,8 @@ mydata_clean_noV[mydata_clean_noV$Units == "ng/L", "RESULT_clean.ug.l"] <- mydat
 mydata_clean_noV[mydata_clean_noV$Units == "µg/L", "RESULT_clean.ug.l"] <- mydata_clean_noV[mydata_clean_noV$Units == "µg/L", ]$RESULT_clean
 
 ####Substitute the NDs for zeroes in a new column
-mydata_clean_noV[mydata_clean_noV$RESULT == "ND", "RESULT_clean.ug.l.subND"] <- 0
-mydata_clean_noV[mydata_clean_noV$RESULT != "ND", "RESULT_clean.ug.l.subND"] <- mydata_clean_noV[mydata_clean_noV$RESULT != "ND", ]$RESULT_clean.ug.l
+mydata_clean_noV[mydata_clean_noV$dnd == 0, "RESULT_clean.ug.l.subND"] <- 0
+mydata_clean_noV[mydata_clean_noV$dnd == 1, "RESULT_clean.ug.l.subND"] <- mydata_clean_noV[mydata_clean_noV$RESULT != "ND", ]$RESULT_clean.ug.l
 
 ####Determine minimum benchmark exceedances
 
@@ -455,7 +456,7 @@ mydata_clean_noV[mydata_clean_noV$RESULT != "ND", "RESULT_clean.ug.l.subND"] <- 
   mydata_clean_noV$benchmark.DEQ <- as.numeric(min.criteria$min.DEQ.criteria[ddd])   #make a column of appropriate benchmark
   mydata_clean_noV$benchmark.EPA <- as.numeric(min.criteria$min.EPA.criteria[ddd])   #make a column of appropriate benchmark  
   mydata_clean_noV$relevant.AL.benchmark <- as.numeric(min.criteria$criteria.minimum.criteria.benchmark.value[ddd])   #make a column of appropriate benchmark
-  mydata_clean_noV$final_digress2 <- ifelse(mydata_clean_noV$RESULT_clean.ug.l > mydata_clean_noV$relevant.AL.benchmark, 1,0) #make column with digression stations (T/F)
+  mydata_clean_noV$final_digress <- ifelse(mydata_clean_noV$RESULT_clean.ug.l > mydata_clean_noV$relevant.AL.benchmark, 1,0) #make column with digression stations (T/F)
 
 # for(i in 1:nrow(mydata_clean_noV)){
 #   ccc <- mydata_clean_noV$Analyte[i]
@@ -473,22 +474,48 @@ digressions <- digressions[(index),]
 #### Determine percent digression of criteria
 mydata_clean_noV$percent.benchmark <- mydata_clean_noV$RESULT_clean.ug.l/mydata_clean_noV$relevant.AL.benchmark
 mydata_clean_noV$exceed.type <- NA
-
-  if(is.na(mydata_clean_noV$RESULT_clean) == FALSE & is.na(mydata_clean_noV$relevant.AL.benchmark) == TRUE){ #result is a detection AND benchmark does NOT exist
-    mydata_clean_noV$exceed.type <- "no benchmark available"
+# 
+#     mydata_clean_noV[is.na(mydata_clean_noV$RESULT_clean) == FALSE & is.na(mydata_clean_noV$relevant.AL.benchmark) == TRUE, "exceed.type"] <- "no benchmark available"#result is a detection AND benchmark does NOT exist
+#       #percent.benchmark is a real number
+#     mydata_clean_noV[is.na(mydata_clean_noV$percent.benchmark)==FALSE) & 
+#         if(mydata_clean_noV$percent.benchmark < 0.1){
+#           mydata_clean_noV$exceed.type <- "less than ten percent of benchmark"  
+#         }else{
+#     mydata_clean_noV[is.na(mydata_clean_noV$percent.benchmark)==FALSE) &
+#if(mydata_clean_noV$percent.benchmark >= 0.1 & mydata_clean_noV$percent.benchmark < 0.5){
+#             mydata_clean_noV$exceed.type <- "between ten and fifty percent of benchmark"
+#           }else{
+#mydata_clean_noV[is.na(mydata_clean_noV$percent.benchmark)==FALSE) &
+#  if(mydata_clean_noV$percent.benchmark >= 0.5 & mydata_clean_noV$percent.benchmark < 1.0){
+#               mydata_clean_noV$exceed.type <- "between fifty and 100 percent of benchmark"
+#             }else{
+# mydata_clean_noV[is.na(mydata_clean_noV$percent.benchmark)==FALSE) &
+#    if(mydata_clean_noV$percent.benchmark > 1.0){
+#                 mydata_clean_noV$exceed.type <- "greater than 100 percent of benchmark"
+#               }
+#             }
+#           }
+#         }
+#       }
+#     }
+#   }
+ 
+for(i in 1:nrow(mydata_clean_noV)){
+  if(is.na(mydata_clean_noV$RESULT_clean[i]) == FALSE & is.na(mydata_clean_noV$relevant.AL.benchmark[i]) == TRUE){ #result is a detection AND benchmark does NOT exist
+    mydata_clean_noV$exceed.type[i] <- "no benchmark available"
   }else{
-    if(is.na(mydata_clean_noV$percent.benchmark)==FALSE){ #percent.benchmark is a real number
-      if(mydata_clean_noV$percent.benchmark < 0.1){
-        mydata_clean_noV$exceed.type <- "less than ten percent of benchmark"  
+    if(is.na(mydata_clean_noV$percent.benchmark[i])==FALSE){ #percent.benchmark is a real number
+      if(mydata_clean_noV$percent.benchmark[i] < 0.1){
+        mydata_clean_noV$exceed.type[i] <- "less than ten percent of benchmark"  
       }else{
-        if(mydata_clean_noV$percent.benchmark >= 0.1 & mydata_clean_noV$percent.benchmark[i] < 0.5){
-          mydata_clean_noV$exceed.type <- "between ten and fifty percent of benchmark"
+        if(mydata_clean_noV$percent.benchmark[i] >= 0.1 & mydata_clean_noV$percent.benchmark[i] < 0.5){
+          mydata_clean_noV$exceed.type[i] <- "between ten and fifty percent of benchmark"
         }else{
-          if(mydata_clean_noV$percent.benchmark >= 0.5 & mydata_clean_noV$percent.benchmark[i] < 1.0){
-            mydata_clean_noV$exceed.type <- "between fifty and 100 percent of benchmark"
+          if(mydata_clean_noV$percent.benchmark[i] >= 0.5 & mydata_clean_noV$percent.benchmark[i] < 1.0){
+            mydata_clean_noV$exceed.type[i] <- "between fifty and 100 percent of benchmark"
           }else{
-            if(mydata_clean_noV$percent.benchmark > 1.0){
-              mydata_clean_noV$exceed.type <- "greater than 100 percent of benchmark"
+            if(mydata_clean_noV$percent.benchmark[i] > 1.0){
+              mydata_clean_noV$exceed.type[i] <- "greater than 100 percent of benchmark"
             }
           }
         }
@@ -496,29 +523,6 @@ mydata_clean_noV$exceed.type <- NA
     }
   }
 }
-#for(i in 1:nrow(mydata_clean_noV)){
-#   if(is.na(mydata_clean_noV$RESULT_clean[i]) == FALSE & is.na(mydata_clean_noV$relevant.AL.benchmark[i]) == TRUE){ #result is a detection AND benchmark does NOT exist
-#     mydata_clean_noV$exceed.type[i] <- "no benchmark available"
-#   }else{
-#     if(is.na(mydata_clean_noV$percent.benchmark[i])==FALSE){ #percent.benchmark is a real number
-#       if(mydata_clean_noV$percent.benchmark[i] < 0.1){
-#         mydata_clean_noV$exceed.type[i] <- "less than ten percent of benchmark"  
-#       }else{
-#         if(mydata_clean_noV$percent.benchmark[i] >= 0.1 & mydata_clean_noV$percent.benchmark[i] < 0.5){
-#           mydata_clean_noV$exceed.type[i] <- "between ten and fifty percent of benchmark"
-#         }else{
-#           if(mydata_clean_noV$percent.benchmark[i] >= 0.5 & mydata_clean_noV$percent.benchmark[i] < 1.0){
-#             mydata_clean_noV$exceed.type[i] <- "between fifty and 100 percent of benchmark"
-#           }else{
-#             if(mydata_clean_noV$percent.benchmark[i] > 1.0){
-#               mydata_clean_noV$exceed.type[i] <- "greater than 100 percent of benchmark"
-#             }
-#           }
-#         }
-#       }
-#     }
-#   }
-# }
 
 ####check that these analytes truly do NOT have a benchmark value
 aaa <- (mydata_clean_noV[mydata_clean_noV$exceed.type == "no benchmark available",])
@@ -534,28 +538,36 @@ detections <- detections[(index),]
 
 
 ###########################
-for(i in 1:nrow(mydata_clean_noV)){
-  if(is.na(mydata_clean_noV$RESULT_clean.ug.l[i]) == TRUE){
-    mydata_clean_noV$RESULT_clean.ug.l.neg[i] <- -999  
-  }else{
-    if(is.na(mydata_clean_noV$RESULT_clean.ug.l[i]) == FALSE){
-      mydata_clean_noV$RESULT_clean.ug.l.neg[i] <- mydata_clean_noV$RESULT_clean.ug.l[i]
-    }
-  }
-}
+#mydata_clean_noV[mydata_clean_noV$dnd == 0, "RESULT_clean.ug.l.neg"] <- -999
+#mydata_clean_noV[mydata_clean_noV$dnd == 1, "RESULT_clean.ug.l.neg"] <- mydata_clean_noV$RESULT_clean.ug.l
+mydata_clean_noV$RESULT_clean.ug.l.neg <- ifelse(mydata_clean_noV$dnd == 0, -999, mydata_clean_noV$RESULT_clean.ug.l)
+
+# for(i in 1:nrow(mydata_clean_noV)){
+#   if(is.na(mydata_clean_noV$RESULT_clean.ug.l[i]) == TRUE){
+#     mydata_clean_noV$RESULT_clean.ug.l.neg[i] <- -999  
+#   }else{
+#     if(is.na(mydata_clean_noV$RESULT_clean.ug.l[i]) == FALSE){
+#       mydata_clean_noV$RESULT_clean.ug.l.neg[i] <- mydata_clean_noV$RESULT_clean.ug.l[i]
+#     }
+#   }
+# }
 
 ###########################
-for(i in 1:nrow(mydata_clean_noV)){
-  if(mydata_clean_noV$Station_Number[i] == 32010){
-    mydata_clean_noV$Station_Description[i] <- "West Prong Little Walla Walla River south of Stateline Rd"  
-  }
-}
+mydata_clean_noV[mydata_clean_noV$Station_Number == 32010, "Station_Description"] <- "West Prong Little Walla Walla River south of Stateline Rd"  
+
+# for(i in 1:nrow(mydata_clean_noV)){
+#   if(mydata_clean_noV$Station_Number[i] == 32010){
+#     mydata_clean_noV$Station_Description[i] <- "West Prong Little Walla Walla River south of Stateline Rd"  
+#   }
+# }
 #fix station name from "Little Walla Walla River at The Frog     "  to delete the spaces
-for(i in 1:nrow(mydata_clean_noV)){
-  if(mydata_clean_noV$Station_Number[i] == 32012){
-    mydata_clean_noV$Station_Description[i] <- "Little Walla Walla River at The Frog"  
-  }
-}
+mydata_clean_noV[mydata_clean_noV$Station_Number == 32012, "Station_Description"] <- "Little Walla Walla River at The Frog"  
+
+# for(i in 1:nrow(mydata_clean_noV)){
+#   if(mydata_clean_noV$Station_Number[i] == 32012){
+#     mydata_clean_noV$Station_Description[i] <- "Little Walla Walla River at The Frog"  
+#   }
+# }
 
 #subset the Basin "Hood River POCIS/SPMD" and assign new name
 mydata_clean_noV[mydata_clean_noV$Basin == "Hood River POCIS/SPMD", "Basin"] <- "Hood River POCIS_SPMD"
@@ -619,19 +631,19 @@ for (y in unique(mydata_clean_noV$year)){
 for (y in unique(mydata_clean_noV$year)){
 for(B in unique(mydata_clean_noV_list[[y]]$Basin)){
   subset.pointsB <- mydata_clean_noV_list[[y]][mydata_clean_noV_list[[y]]$Basin == B,]
-  print(B)
+#  print(B)
 
   for(ii in analytes){
     subset.points0 <- subset(subset.pointsB, Analyte == ii)#aaa
-    print(ii)
+#    print(ii)
     
     if((B=="Walla Walla"| B=="Wasco" | B=="Hood River") & (ii == "Chlorpyrifos")){
-      subset.points0 <- subset.points0[subset.points0$date <= "2014-04-30",]#Early Spring chlorpyrifos in WW, Wasco, Hood
-      print(paste0(B, ii, " Early spring chlorpyrifos"))
+      subset.points0 <- subset.points0[subset.points0$date <= paste0(y, "-04-30"), ]#Early Spring chlorpyrifos in WW, Wasco, Hood
+#      print(paste0(B, ii, " Early spring chlorpyrifos"))
     }else{
       if((B=="Walla Walla"| B=="Wasco" | B=="Hood River") & (ii == "Azinphos-methyl (Guthion)" | ii == "Malathion")){
-        subset.points0 <- subset.points0[subset.points0$date >= "2014-05-01",]#Late Spring guthion and malathion in WW, Wasco, Hood
-        print(paste0(B, ii, " Late spring guthion and malathion"))
+        subset.points0 <- subset.points0[subset.points0$date >= paste0(y, "-05-01"), ]#Late Spring guthion and malathion in WW, Wasco, Hood
+#        print(paste0(B, ii, " Late spring guthion and malathion"))
       }}
     
     ####Walla Walla distributaries
@@ -785,10 +797,10 @@ head(Det.freq.table.new)
 tail(Det.freq.table.new)
 
 ### STOPPED HERE; note that you will have to change the Det.freq.table to Det.freq.table.new below
-
+Det.freq.table <- Det.freq.table.new
 ##### Clean up files----
 
-Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
+#Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
 
 write.csv(Det.freq.table, paste0(outpath.plot.points,"State_alldates_detection_frequencies_savedon", Sys.Date(),".csv")) 
 
@@ -856,7 +868,7 @@ for (B in unique(mydata_clean_noV$Basin)) {
       a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
       #benchmarks lines and labels  
       if(length(numeric.criterion.graph)==0){  #if there is NO DEQ criteria or EPA benchmark
-        title <- (paste0(B, " 2014\n", ii, "\nNo benchmark available")) 
+        title <- (paste0(B, " ", y," \n", ii, "\nNo benchmark available")) 
       }else{
         if(ii != "Chlorpyrifos" 
            & ii != "2,4-D" 
@@ -866,34 +878,34 @@ for (B in unique(mydata_clean_noV$Basin)) {
            #& ii != "Desethylatrazine" 
            & length(numeric.criterion.graph)>0){  #list of names of the exceptions#if there IS DEQ criteria or EPA benchmark
           a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
-          title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
+          title <- (paste0(B, " ", y," \n", ii, numeric.criterion.label))
         }else{
           if(ii == "Chlorpyrifos"){  #Chlorpyrifos is only standard where we draw both lines
             a <- a + geom_hline(yintercept=0.083, linetype=2)  #draw Acute Chlorpyrifos WQS (only graph with two WQS)
             a <- a + geom_hline(yintercept=0.041, linetype=1)  #draw Chronic Chlorpyrifos WQS (only graph with two WQS)
-            title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
+            title <- (paste0(B, " ", y," \n", ii, numeric.criterion.label))
           }else{
             if(ii == "2,4-D"){  #Using the "2,4-D Acids and Salts"  
               a <- a + geom_hline(yintercept=13.1)  
-              title <- (paste0(B, " 2014\n", ii, "\nEPA benchmark = 13.1 ug/L "))
+              title <- (paste0(B, " ", y," \n", ii, "\nEPA benchmark = 13.1 ug/L "))
             }else{
               if(ii == "Atrazine"){  #Proposed EPA benchmarks 12/17/14  
                 a <- a + geom_hline(yintercept=1.0, linetype=1)  #draw solid last year's EPA benchmark
                 a <- a + geom_hline(yintercept=0.001, linetype=2)  #draw dashed proposed EPA benchmark
-                title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
+                title <- (paste0(B, " ", y," \n", ii, numeric.criterion.label))
               }else{
                 if(ii == "Simazine"){  #Proposed EPA benchmarks 12/17/14  
                   a <- a + geom_hline(yintercept=36, linetype=1)  #draw solid line last year's EPA benchmark
                   a <- a + geom_hline(yintercept=2.24, linetype=2)  #draw dashed line proposed EPA benchmark
-                  title <- (paste0(B, " 2014\n", ii, numeric.criterion.label))
+                  title <- (paste0(B, " ", y," \n", ii, numeric.criterion.label))
                 }else{
                   if(ii == "Deisopropylatrazine"){  #Proposed EPA benchmarks 12/17/14  
                     a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
-                    title <- (paste0(B, " 2014\n", "Triazine DIA degradate", numeric.criterion.label))
+                    title <- (paste0(B, " ", y," \n", "Triazine DIA degradate", numeric.criterion.label))
                   }else{
                     if(ii == "Desethylatrazine"){  #Proposed EPA benchmarks 12/17/14  
                       a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
-                      title <- (paste0(B, " 2014\n", "Triazine DEA degradate", numeric.criterion.label))
+                      title <- (paste0(B, " ", y," \n", "Triazine DEA degradate", numeric.criterion.label))
                     }
                   }
                 }
@@ -911,7 +923,7 @@ for (B in unique(mydata_clean_noV$Basin)) {
       a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
                                            x = 0, hjust = -0.1, vjust=0.1,
                                            gp = gpar(fontface = "italic", fontsize = 8))) 
-      ggsave(filename = paste0(outpath.plot.points, B, "_", ii, "_2014_savedon", Sys.Date(),".jpg"), plot = a)
+      ggsave(filename = paste0(outpath.plot.points, B, "_", ii, "_", y, "_savedon", Sys.Date(),".jpg"), plot = a)
     }
   }
 }
@@ -937,7 +949,7 @@ for(B in unique(mydata_clean_noV$Basin)){
                     color=Station_Description)) #change point colors by station
     a <- a + geom_point(size = 4) #set the point size
     a <- a + theme(aspect.ratio=1/2)
-    a <- a + xlab("") + ylab(paste0("ug/L")) + ggtitle(paste0(B, " 2014")) #write the labels and title
+    a <- a + xlab("") + ylab(paste0("ug/L")) + ggtitle(paste0(B, " ", y)) #write the labels and title
     a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
     a <- a + facet_wrap(~Analyte, drop=TRUE, scales = "free_y")
     a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
@@ -951,7 +963,7 @@ for(B in unique(mydata_clean_noV$Basin)){
     a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
                                          x = 0, hjust = -0.1, vjust=0.1,
                                          gp = gpar(fontface = "italic", fontsize = 8))) 
-    ggsave(filename = paste0(outpath.plot.points, "multiplot_", B, "_2014_savedon", Sys.Date(),".jpg"), plot = a, scale=1.5)
+    ggsave(filename = paste0(outpath.plot.points, "multiplot_", B, "_", y, "_savedon", Sys.Date(),".jpg"), plot = a, scale=1.5)
   }
 }
 

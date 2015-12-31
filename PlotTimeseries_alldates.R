@@ -257,7 +257,7 @@ report[report$Case == "None detected", "Sub"] <-  "ND"
 report[report$Case == "Co-elution", "Sub"] <-  "Void"
 
 ####Also, create a column called "RESULT".  Populate column with the substituted values.
-mydata_clean$RESULT <- sub.cases(mydata_clean$RESULT.raw, report) #just use the report object created in step 02_LASAR_clean.R
+mydata_clean$RESULT <- sub.cases(mydata_clean$RESULT, report) #just use the report object created in step 02_LASAR_clean.R
 
 ####turns empty fields into NAs.
 #report$SubFinal <- as.numeric(report$SubFinal) 

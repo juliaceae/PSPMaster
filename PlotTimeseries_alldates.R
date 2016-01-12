@@ -112,7 +112,21 @@ lasar$Sampled_Date <- as.Date(strptime(lasar$Sampled_Date, format="%m/%d/%Y"))
 basins <- read.csv('P:\\GIS\\PSP_basins\\PSP_Basins_20150427\\PSPDataLASAR_1995onUniqueStations2.csv', stringsAsFactors=FALSE) #This file came from a GIS join. 
 basins <- rename(basins, c('PSP_Name' = 'Project', 
                            'Station' = 'Station_ID')) 
+basins[basins$Project == "Hood", "Project"] <- "Hood River"
+
 lasar.basin <- merge(basins, lasar, by.x="Station_ID", by.y="Station_ID", all.x=TRUE)
+lasar.basin[lasar.basin$Station_Description == "Cow Creek at mouth", "Project"] <- "South Umpqua"
+lasar.basin[lasar.basin$Station_Description == "Doane Creek at Hwy 212", "Project"] <- "Clackamas"
+lasar.basin[lasar.basin$Station_Description == "East Little Walla Walla River north of Stateline Road", "Project"] <- "Walla Walla"
+lasar.basin <- lasar.basin[lasar.basin$Project != " ", ]
+
+
+lasar.basin <- lasar.basin[lasar.basin$Station_Description != "Overstreet Drain (OWYDRN001)", ]
+lasar.basin <- lasar.basin[lasar.basin$Station_Description != "Rose Creek upstream of Sieben Parkway", ]
+[4] "Fletcher Drain (OWYDRN002)"                           
+[5] "Overstreet Drain (OWYDRN001)"                         
+[6] "Rose Creek upstream of Sieben Parkway"    
+
 
 
 require(plyr)
@@ -437,13 +451,13 @@ mydata_clean_noV <- mydata_clean
 
 ####fill out ug/L column----
 unique(mydata_clean_noV$Units)
-#[1] "ng/L" "mg/L" "µg/L"
-#[1] "ng/L" "mg/L" "µg/L"
-#[1] "µg/L"     "ng/L"     "mg/L" 
-
+#[1] "µg/L"     "ppb"      "ng/L"     "mg/L"     "µmhos/cm" "%"       
+#[7] "°C"       "NTU"   
+mydata_clean_noV[mydata_clean_noV$Units == "ppb", "Units"] <- "µg/L"
 mydata_clean_noV[mydata_clean_noV$Units == "mg/L", "RESULT_clean.ug.l"] <-mydata_clean_noV[mydata_clean_noV$Units == "mg/L", ]$RESULT_clean*1000
 mydata_clean_noV[mydata_clean_noV$Units == "ng/L", "RESULT_clean.ug.l"] <- mydata_clean_noV[mydata_clean_noV$Units == "ng/L", ]$RESULT_clean/1000
 mydata_clean_noV[mydata_clean_noV$Units == "µg/L", "RESULT_clean.ug.l"] <- mydata_clean_noV[mydata_clean_noV$Units == "µg/L", ]$RESULT_clean
+mydata_clean_noV <- mydata_clean_noV[mydata_clean_noV$Units %in% c("mg/L", "ng/L", "µg/L"),]
 
 ####Substitute the NDs for zeroes in a new column
 mydata_clean_noV[mydata_clean_noV$dnd == 0, "RESULT_clean.ug.l.subND"] <- 0
@@ -580,6 +594,9 @@ mydata_clean_noV[mydata_clean_noV$Station_Description == "Noyer Creek at Hwy 212
 mydata_clean_noV[mydata_clean_noV$Station_Description == "Sieben Creek at Hwy 212 (Clackamas)" , "Station_Description"] <- "Sieben Creek at Hwy 212" 
 
 
+#### Adding year column to mydata_clean_noV
+mydata_clean_noV$year<-as.integer(substr(mydata_clean_noV$date,1,4))
+
 ###########################
 ##########################
 ####Output a summary table 
@@ -606,8 +623,6 @@ ii <- "Atrazine"
 ii <- "Hexazinone"
 ii <- "Malathion"
 
-#### Adding year column to mydata_clean_noV
-mydata_clean_noV$year<-as.integer(substr(mydata_clean_noV$date,1,4))
 
 #### Setting up lists by year
 mydata_clean_noV_list<-list()
@@ -835,20 +850,21 @@ B <- "Middle Rogue"
 ii <- "Bifenthrin"
 ii <- "Conductivity"
 ii <- "4,4´-DDE"
-
+y <- 2015
 
 #20141023: Delete Walla Walla at the Frog results (because no detections) #32012
-View(mydata_clean_noV[mydata_clean_noV$Station_Number == 32012 & mydata_clean_noV$RESULT != "ND",])
+View(mydata_clean_noV[mydata_clean_noV$Station_Number == 32012 & mydata_clean_noV$RESULT != "ND" & mydata_clean_noV$date > as.Date("2015-01-01"),])
 
 
-
+for(y in unique(mydata_clean_noV$year)){
+  subset.y <- mydata_clean_noV[mydata_clean_noV$year == y,]
 for (B in unique(mydata_clean_noV$Basin)) {
-  subset.B <- mydata_clean_noV[mydata_clean_noV$Station_Number != 32012,] #20141023 to fix the number of stations on WWatTheFrog.  
-  subset.B <- subset(subset.B, Basin == B)
+  subset.B <- subset.y[subset.y$Station_Number != 32012,] #20141023 to fix the number of stations on WWatTheFrog.  
+  subset.B <- subset.B[subset.B$Basin == B,]
   for (ii in analytes){
-    subset.ii <- subset(subset.B, Analyte == ii)
+    subset.ii <- subset.B[subset.B$Analyte == ii,]
     if(length(subset.ii$RESULT > 0) & any(subset.ii$RESULT_clean.ug.l.neg > 0)){
-      print(paste0(B, " ", ii, ": n=", length(subset.ii$RESULT), " sum=", sum(subset.ii$RESULT_clean.ug.l.subND)))
+      print(paste0(y, B, " ", ii, ": n=", length(subset.ii$RESULT), " sum=", sum(subset.ii$RESULT_clean.ug.l.subND)))
       
       numeric.criterion.graph <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == ii,'criteria.minimum.criteria.benchmark.value']) #find the lowest EPA AL benchmark
       numeric.criterion.label <- min.criteria[min.criteria$criteria.Pollutant == ii,'label'] #find the lowest DEQ AL benchmark
@@ -914,20 +930,35 @@ for (B in unique(mydata_clean_noV$Basin)) {
           }
         }
       }
+    
       a <- a + ggtitle(title) #write the title and subtitle
       a <- a + guides(shape = guide_legend(ncol = 2))
       a <- a + theme(legend.position="bottom")
       a <- a + theme(legend.direction="vertical")
       a <- a + theme(legend.text=element_text(size=10))
       a <- a + theme(legend.title=element_blank()) #remove title from legend
-      a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
-                                           x = 0, hjust = -0.1, vjust=0.1,
-                                           gp = gpar(fontface = "italic", fontsize = 8))) 
+
+      
+#       a <- ggplot(data = subset.ii, #data source is the subset of Basin and analyte
+#                   aes(x = date, #x axis is dates
+#                       y = RESULT_clean.ug.l.neg, #y axis is numeric result
+#                       group=Station_Description,
+#                       shape=Station_Description, #change point shapes by station
+#                       color=Station_Description)) #change point colors by station
+#       a <- a + geom_point(size = 5) #set the point size
+      
+      
+      a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+
+#       
+#             a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
+#                                            x = 0, hjust = -0.1, vjust=0.1,
+#                                            gp = gpar(fontface = "italic", fontsize = 8))) 
       ggsave(filename = paste0(outpath.plot.points, B, "_", ii, "_", y, "_savedon", Sys.Date(),".jpg"), plot = a)
     }
   }
 }
-
+}
 
 #################################################################################
 #ggplot 
@@ -960,9 +991,12 @@ for(B in unique(mydata_clean_noV$Basin)){
     a <- a + theme(legend.position="bottom", legend.direction="vertical", legend.text=element_text(size=10), #move legend
                    legend.title=element_blank()) #remove title from legend
     a
-    a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
-                                         x = 0, hjust = -0.1, vjust=0.1,
-                                         gp = gpar(fontface = "italic", fontsize = 8))) 
+   
+    a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+    
+#     a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
+#                                          x = 0, hjust = -0.1, vjust=0.1,
+#                                          gp = gpar(fontface = "italic", fontsize = 8))) 
     ggsave(filename = paste0(outpath.plot.points, "multiplot_", B, "_", y, "_savedon", Sys.Date(),".jpg"), plot = a, scale=1.5)
   }
 }

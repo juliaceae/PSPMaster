@@ -937,7 +937,10 @@ for (B in unique(mydata_clean_noV$Basin)) {
       a <- a + theme(legend.direction="vertical")
       a <- a + theme(legend.text=element_text(size=10))
       a <- a + theme(legend.title=element_blank()) #remove title from legend
-
+      #a <- a + theme(axis.text.x = element_text(angle = 90, hjust = 1)) #rotate x axis labels
+      a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
+      
+      
       
 #       a <- ggplot(data = subset.ii, #data source is the subset of Basin and analyte
 #                   aes(x = date, #x axis is dates

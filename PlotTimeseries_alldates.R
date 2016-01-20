@@ -858,7 +858,9 @@ View(mydata_clean_noV[mydata_clean_noV$Station_Number == 32012 & mydata_clean_no
 
 for(y in unique(mydata_clean_noV$year)){
   subset.y <- mydata_clean_noV[mydata_clean_noV$year == y,]
-for (B in unique(mydata_clean_noV$Basin)) {
+  subset.y[subset.y$Analyte == "Aminomethylphosponic acid (AMPA)", "Analyte"] <- "AMPA"
+
+  for (B in unique(mydata_clean_noV$Basin)) {
   subset.B <- subset.y[subset.y$Station_Number != 32012,] #20141023 to fix the number of stations on WWatTheFrog.  
   subset.B <- subset.B[subset.B$Basin == B,]
   for (ii in analytes){
@@ -937,23 +939,9 @@ for (B in unique(mydata_clean_noV$Basin)) {
       a <- a + theme(legend.direction="vertical")
       a <- a + theme(legend.text=element_text(size=10))
       a <- a + theme(legend.title=element_blank()) #remove title from legend
-      #a <- a + theme(axis.text.x = element_text(angle = 90, hjust = 1)) #rotate x axis labels
-      a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
-      
-      
-      
-#       a <- ggplot(data = subset.ii, #data source is the subset of Basin and analyte
-#                   aes(x = date, #x axis is dates
-#                       y = RESULT_clean.ug.l.neg, #y axis is numeric result
-#                       group=Station_Description,
-#                       shape=Station_Description, #change point shapes by station
-#                       color=Station_Description)) #change point colors by station
-#       a <- a + geom_point(size = 5) #set the point size
-      
-      
+      #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
+      a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=6))
       a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
-
-#       
 #             a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
 #                                            x = 0, hjust = -0.1, vjust=0.1,
 #                                            gp = gpar(fontface = "italic", fontsize = 8))) 

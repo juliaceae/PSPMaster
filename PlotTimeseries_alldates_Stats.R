@@ -224,6 +224,6 @@ Det.freq.table <- Det.freq.table.new
 
 #Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
 
-write.csv(Det.freq.table, paste0(outpath.plot.points,"2State_alldates_detection_frequencies_savedon", Sys.Date(),".csv")) 
+write.csv(Det.freq.table, paste0(outpath.plot.points,"State_alldates_detection_frequencies_savedon", Sys.Date(),".csv")) 
 
-write.csv(mydata_clean_noV, paste0(outpath.plot.points,"2State_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 

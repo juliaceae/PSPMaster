@@ -20,7 +20,7 @@ library(gridExtra)
 #single plots
 #stations sorted by shape
 
-B <- "Hood River"
+B <- "Wasco"
 ii <- "Deisopropylatrazine"
 ii <- "Total Solids"
 B <- "Amazon"
@@ -35,6 +35,7 @@ y <- 2015
 #20141023: Delete Walla Walla at the Frog results (because no detections) #32012
 View(mydata_clean_noV[mydata_clean_noV$Station_Number == 32012 & mydata_clean_noV$RESULT != "ND" & mydata_clean_noV$date > as.Date("2015-01-01"),])
 
+new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_TimeSeries", sep="")) 
 
 for(y in unique(mydata_clean_noV$year)){
   subset.y <- mydata_clean_noV[mydata_clean_noV$year == y,]
@@ -119,8 +120,8 @@ for(y in unique(mydata_clean_noV$year)){
         a <- a + theme(legend.direction="vertical")
         a <- a + theme(legend.text=element_text(size=10))
         a <- a + theme(legend.title=element_blank()) #remove title from legend
-        #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
-        a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=6))
+        a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
+        #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=6))
         a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
         #             a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
         #                                            x = 0, hjust = -0.1, vjust=0.1,
@@ -137,6 +138,8 @@ for(y in unique(mydata_clean_noV$year)){
 #ggplot 
 #multiplot
 #stations sorted by shape and color
+
+new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_Multiplots", sep="")) 
 
 B <- "Hood River"
 for(y in unique(mydata_clean_noV$year)){
@@ -187,7 +190,6 @@ Det.freq.table$Year <- as.POSIXct(strptime(Det.freq.table$Year, format = '%Y'))
 
 ii <- "Chlorpyrifos"
 B <- "Yamhill"
-
 
 for (B in unique(Det.freq.table$Basin)) {
   subset.B <- Det.freq.table[Det.freq.table$Basin == B,]
@@ -392,6 +394,8 @@ for (B in unique(Det.freq.table$Basin)) {
 ##########################################
 ##########################################
 #SCRATCH COMBINING
+
+new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_AnnualAverageFreq", sep="")) 
 
 ii <- "Chlorpyrifos"
 B <- "Yamhill"

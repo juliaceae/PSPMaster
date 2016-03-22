@@ -214,9 +214,9 @@ Det.freq.table <- data.frame("Basin"=NA,
 
 #Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
 
-write.csv(Det.freq.table, paste0(outpath.plot.points,"SouthPilots_2014-15_detection_frequencies_savedon", Sys.Date(),".csv")) 
+write.csv(Det.freq.table, paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\", Sys.Date(), "\\","SouthPilots_2014-15_detection_frequencies_savedon", Sys.Date(),".csv")) 
 
-write.csv(SouthPilots, paste0(outpath.plot.points,"SouthPilots_2014-15_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+write.csv(SouthPilots, paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\", Sys.Date(), "\\","SouthPilots_2014-15_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
 
 
 #From Graphs script:
@@ -230,7 +230,7 @@ dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.D
 y <- "2014-2015"
 subset.y <- SouthPilots
 subset.y[subset.y$Analyte == "Aminomethylphosponic acid (AMPA)", "Analyte"] <- "AMPA"
-subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek from graph (because too many stations), but add a note that it was there
+subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek at confluence with MFCoquilleR from graph (because too many stations), but add a note that it was there
 
   for (B in unique(subset.y$Basin)) {
     subset.B <- subset.y[subset.y$Station_Number != 32012,] #20141023 to fix the number of stations on WWatTheFrog.  
@@ -313,8 +313,8 @@ subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek fro
         a <- a + theme(legend.title=element_blank()) #remove title from legend
         a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
         #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=6))
-        #a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
-        a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "        *Myrtle Creek sampled 9/24/14: no detections")))
+        if(B == "South Umpqua") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+        if(B == "South Coast") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "        *Myrtle Creek sampled 9/24/14: no detections")))
         #             a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
         #                                            x = 0, hjust = -0.1, vjust=0.1,
         #                                            gp = gpar(fontface = "italic", fontsize = 8))) 
@@ -365,8 +365,8 @@ B <- "Hood River"
                      legend.title=element_blank()) #remove title from legend
       a
       
-#      a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
-      a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "        *Myrtle Creek sampled 9/24/14: no detections")))
+      if(B == "South Umpqua") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+      if(B == "South Coast") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "        *Myrtle Creek sampled 9/24/14: no detections")))
       
       #     a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
       #                                          x = 0, hjust = -0.1, vjust=0.1,

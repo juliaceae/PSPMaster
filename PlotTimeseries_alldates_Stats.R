@@ -227,3 +227,10 @@ Det.freq.table <- Det.freq.table.new
 write.csv(Det.freq.table, paste0(outpath.plot.points,"State_alldates_detection_frequencies_savedon", Sys.Date(),".csv")) 
 
 write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+
+#subset by basin and write out a separate .csv file
+new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_by_Basin_alldates_datafiles", sep="")) 
+for (B in unique(mydata_clean_noV$Basin)){
+  subset.B <- mydata_clean_noV[mydata_clean_noV$Basin == B,]
+  write.csv(subset.B, paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_by_Basin_alldates_datafiles\\", B, "_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+}

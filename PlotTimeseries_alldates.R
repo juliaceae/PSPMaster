@@ -598,3 +598,5 @@ mydata_clean_noV[mydata_clean_noV$Station_Description == "Sieben Creek at Hwy 21
 
 #### Adding year column to mydata_clean_noV
 mydata_clean_noV$year<-as.integer(substr(mydata_clean_noV$date,1,4))
+mydata_clean_noV[mydata_clean_noV$Analyte == "Aminomethylphosponic acid (AMPA)", "Analyte"] <- "AMPA"
+

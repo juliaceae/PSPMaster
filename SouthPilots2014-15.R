@@ -232,6 +232,7 @@ subset.y <- SouthPilots
 subset.y[subset.y$Analyte == "Aminomethylphosponic acid (AMPA)", "Analyte"] <- "AMPA"
 subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek at confluence with MFCoquilleR from graph (because too many stations), but add a note that it was there
 
+
   for (B in unique(subset.y$Basin)) {
     subset.B <- subset.y[subset.y$Station_Number != 32012,] #20141023 to fix the number of stations on WWatTheFrog.  
     subset.B <- subset.B[subset.B$Basin == B,]
@@ -239,6 +240,16 @@ subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek at 
       subset.ii <- subset.B[subset.B$Analyte == ii,]
       if(length(subset.ii$RESULT > 0) & any(subset.ii$RESULT_clean.ug.l.neg > 0)){
         print(paste0(y, B, " ", ii, ": n=", length(subset.ii$RESULT), " sum=", sum(subset.ii$RESULT_clean.ug.l.subND)))
+        
+        df <- data.frame(date = unique(subset.ii$date), prior_date = as.Date(NA), display_date = as.Date(NA))
+        df <- df[order(df$date),]
+        df$index <- 1:nrow(df)
+        df$prior_date_index <- df$index - 1
+        df[2:nrow(df),'prior_date'] <- df[df$prior_date_index[-1],'date']
+        df$diff <- df$date - df$prior_date
+        df[which(df$diff > 2), 'display_date']  <- df[which(df$diff > 2), 'date'] 
+        df$display_date[1] <- df$date[1]
+        display_dates <- format(df$display_date, format="%m/%d/%y")
         
         numeric.criterion.graph <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == ii,'criteria.minimum.criteria.benchmark.value']) #find the lowest EPA AL benchmark
         numeric.criterion.label <- min.criteria[min.criteria$criteria.Pollutant == ii,'label'] #find the lowest DEQ AL benchmark
@@ -250,7 +261,7 @@ subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek at 
                         color=Station_Description)) #change point colors by station
         a <- a + geom_point(size = 5) #set the point size
         a <- a + xlab("") + ylab(("ug/L")) #write the labels
-        a <- a + scale_x_date(breaks=unique(subset.ii$date), labels=format(unique(subset.ii$date), format="%m/%d/%y"))
+        a <- a + scale_x_date(breaks=df$date, labels=ifelse(is.na(display_dates), "", display_dates))
         a <- a + coord_cartesian(xlim=c(min(subset.ii$date)-1, max(subset.ii$date)+1)) #add a day to beginning and end
         a <- a + theme(aspect.ratio=1)
         a <- a + theme_bw() #blackandwhite theme
@@ -311,8 +322,8 @@ subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek at 
         a <- a + theme(legend.direction="vertical")
         a <- a + theme(legend.text=element_text(size=10))
         a <- a + theme(legend.title=element_blank()) #remove title from legend
+        #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
         a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
-        #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=6))
         if(B == "South Umpqua") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
         if(B == "South Coast") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "        *Myrtle Creek sampled 9/24/14: no detections")))
         #             a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 

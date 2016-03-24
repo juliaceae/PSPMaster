@@ -218,6 +218,46 @@ write.csv(Det.freq.table, paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\", Sys.Da
 
 write.csv(SouthPilots, paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\", Sys.Date(), "\\","SouthPilots_2014-15_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
 
+#From Detection Frequency Casting script:
+#Create table of analyte by detection frequecy category.  
+
+library(reshape2)
+
+#add a by basin and by year loop?
+
+Det.freq.table.new <- Det.freq.table #be careful with this... useful for SouthPilots script ONLY!!
+Det.freq.table.new <- Det.freq.table.new[!is.na(Det.freq.table.new$Basin),]
+B <- "South Coast"
+
+x <- Det.freq.table.new[Det.freq.table.new$exceed.type != 'Not Calculated' & Det.freq.table.new$Station == 'Basin aggregate' & Det.freq.table.new$Basin == B,]
+y <- Det.freq.table.new[Det.freq.table.new$exceed.type != 'Not Calculated' & Det.freq.table.new$Station == B,]
+
+y$exceed.type <- factor(y$exceed.type, levels = c('less than ten percent of benchmark',
+                                           'between ten and fifty percent of benchmark',
+                                           'between fifty and 100 percent of benchmark',
+                                           'greater than 100 percent of benchmark',
+                                           'no benchmark available'))
+
+x1 <- reshape2::dcast(x, Parameter ~ exceed.type, value.var = 'percent.det.freq')
+y1 <- reshape2::dcast(y, Parameter ~ exceed.type, value.var = 'percent.det.freq', drop = FALSE)
+
+xy <- merge(x1, y1, by = 'Parameter', all = TRUE)
+
+#xy <- within(xy, rm("NA.y", "NA.x"))
+
+#Reorders the columns
+xy <- xy[,c('Parameter','less than ten percent of benchmark',
+            'between ten and fifty percent of benchmark',
+            'between fifty and 100 percent of benchmark',
+            'greater than 100 percent of benchmark',
+            'no benchmark available', 'Total Detection Freq')]
+
+write.csv(xy, row.names = FALSE, file = paste0('//deqhq1/PSP/Rscripts/Alldates/', Sys.Date(), '/', B,  'updated_det_freq_savedon', Sys.Date(), '.csv')) 
+
+
+
+
+
 
 #From Graphs script:
 library(ggplot2)
@@ -232,7 +272,6 @@ subset.y <- SouthPilots
 subset.y[subset.y$Analyte == "Aminomethylphosponic acid (AMPA)", "Analyte"] <- "AMPA"
 subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek at confluence with MFCoquilleR from graph (because too many stations), but add a note that it was there
 
-
   for (B in unique(subset.y$Basin)) {
     subset.B <- subset.y[subset.y$Station_Number != 32012,] #20141023 to fix the number of stations on WWatTheFrog.  
     subset.B <- subset.B[subset.B$Basin == B,]
@@ -246,6 +285,7 @@ subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek at 
         df$index <- 1:nrow(df)
         df$prior_date_index <- df$index - 1
         df[2:nrow(df),'prior_date'] <- df[df$prior_date_index[-1],'date']
+        df[1, 'prior_date'] <- df[1, 'date'] #assign the prior date to the same date
         df$diff <- df$date - df$prior_date
         df[which(df$diff > 2), 'display_date']  <- df[which(df$diff > 2), 'date'] 
         df$display_date[1] <- df$date[1]
@@ -322,10 +362,10 @@ subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek at 
         a <- a + theme(legend.direction="vertical")
         a <- a + theme(legend.text=element_text(size=10))
         a <- a + theme(legend.title=element_blank()) #remove title from legend
-        #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
+        #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=6))
         a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
-        if(B == "South Umpqua") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
-        if(B == "South Coast") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "        *Myrtle Creek sampled 9/24/14: no detections")))
+        a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+        if(B == "South Coast") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "            *Myrtle Creek sampled 9/24/14: no detections")))
         #             a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
         #                                            x = 0, hjust = -0.1, vjust=0.1,
         #                                            gp = gpar(fontface = "italic", fontsize = 8))) 

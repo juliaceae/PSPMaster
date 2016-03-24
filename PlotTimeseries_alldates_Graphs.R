@@ -40,6 +40,7 @@ new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(
 for(y in unique(mydata_clean_noV$year)){
   subset.y <- mydata_clean_noV[mydata_clean_noV$year == y,]
   subset.y[subset.y$Analyte == "Aminomethylphosponic acid (AMPA)", "Analyte"] <- "AMPA"
+  subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek at confluence with MFCoquilleR from graph (because too many stations), but add a note that it was there
   
   for (B in unique(subset.y$Basin)) {
     subset.B <- subset.y[subset.y$Station_Number != 32012,] #20141023 to fix the number of stations on WWatTheFrog.  
@@ -48,6 +49,17 @@ for(y in unique(mydata_clean_noV$year)){
       subset.ii <- subset.B[subset.B$Analyte == ii,]
       if(length(subset.ii$RESULT > 0) & any(subset.ii$RESULT_clean.ug.l.neg > 0)){
         print(paste0(y, B, " ", ii, ": n=", length(subset.ii$RESULT), " sum=", sum(subset.ii$RESULT_clean.ug.l.subND)))
+      
+        df <- data.frame(date = unique(subset.ii$date), prior_date = as.Date(NA), display_date = as.Date(NA))
+        df <- df[order(df$date),]
+        df$index <- 1:nrow(df)
+        df$prior_date_index <- df$index - 1
+        df[2:nrow(df),'prior_date'] <- df[df$prior_date_index[-1],'date']
+        df[1, 'prior_date'] <- df[1, 'date'] #assign the prior date to the same date
+        df$diff <- df$date - df$prior_date
+        df[which(df$diff > 2), 'display_date']  <- df[which(df$diff > 2), 'date'] 
+        df$display_date[1] <- df$date[1]
+        display_dates <- format(df$display_date, format="%m/%d/%y")
         
         numeric.criterion.graph <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == ii,'criteria.minimum.criteria.benchmark.value']) #find the lowest EPA AL benchmark
         numeric.criterion.label <- min.criteria[min.criteria$criteria.Pollutant == ii,'label'] #find the lowest DEQ AL benchmark
@@ -59,7 +71,8 @@ for(y in unique(mydata_clean_noV$year)){
                         color=Station_Description)) #change point colors by station
         a <- a + geom_point(size = 5) #set the point size
         a <- a + xlab("") + ylab(("ug/L")) #write the labels
-        a <- a + scale_x_date(breaks=unique(subset.ii$date), labels=format(unique(subset.ii$date), format="%m/%d"))
+        a <- a + scale_x_date(breaks=df$date, labels=ifelse(is.na(display_dates), "", display_dates), format == "%m/%d")
+        if(subset.B$Basin %in% c("South Coast", "South Umpqua")) a <- a + scale_x_date(breaks=df$date, labels=ifelse(is.na(display_dates), "", display_dates))
         a <- a + coord_cartesian(xlim=c(min(subset.ii$date)-1, max(subset.ii$date)+1)) #add a day to beginning and end
         a <- a + theme(aspect.ratio=1)
         a <- a + theme_bw() #blackandwhite theme
@@ -120,9 +133,10 @@ for(y in unique(mydata_clean_noV$year)){
         a <- a + theme(legend.direction="vertical")
         a <- a + theme(legend.text=element_text(size=10))
         a <- a + theme(legend.title=element_blank()) #remove title from legend
-        a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
         #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=6))
+        a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
         a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+        if(B == "South Coast") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "            *Myrtle Creek sampled 9/24/14: no detections")))
         #             a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
         #                                            x = 0, hjust = -0.1, vjust=0.1,
         #                                            gp = gpar(fontface = "italic", fontsize = 8))) 
@@ -145,6 +159,7 @@ B <- "Hood River"
 for(y in unique(mydata_clean_noV$year)){
   subset.y <- mydata_clean_noV[mydata_clean_noV$year == y,]
   subset.y[subset.y$Analyte == "Aminomethylphosponic acid (AMPA)", "Analyte"] <- "AMPA"
+  subset.y <- subset.y[subset.y$Station_Number != 37805,] #Remove Myrtle Creek from graph (because too many stations), but add a note that it was there
   
 for(B in unique(subset.y$Basin)){
   subset.B <- subset.y[subset.y$Station_Number != 32012,] #20141023 to fix the number of stations on WWatTheFrog.  
@@ -163,6 +178,7 @@ for(B in unique(subset.y$Basin)){
     a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
     a <- a + facet_wrap(~Analyte, drop=TRUE, scales = "free_y")
     a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
+    if(subset.B$Basin %in% c("South Coast", "South Umpqua")) a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d/%y"))
     a <- a + coord_cartesian(xlim=c(min(subset.B$date)-5, max(subset.B$date)+5)) #add 5 day to beginning and end
     a <- a + theme(axis.text.x  = element_text(angle=90, vjust=0.5, color="black", size=10))
     a <- a + theme(axis.text.y  = element_text(color="black", size=10))
@@ -172,6 +188,7 @@ for(B in unique(subset.y$Basin)){
     a
     
     a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+    if(B == "South Coast") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "        *Myrtle Creek sampled 9/24/14: no detections")))
     
     #     a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
     #                                          x = 0, hjust = -0.1, vjust=0.1,

@@ -59,7 +59,8 @@ for(y in unique(mydata_clean_noV$year)){
         df$diff <- df$date - df$prior_date
         df[which(df$diff > 2), 'display_date']  <- df[which(df$diff > 2), 'date'] 
         df$display_date[1] <- df$date[1]
-        display_dates <- format(df$display_date, format="%m/%d/%y")
+        display_dates <- format(df$display_date, format="%m/%d")
+        if(B %in% c("South Coast", "South Umpqua")) display_dates <- format(df$display_date, format="%m/%d/%y")
         
         numeric.criterion.graph <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == ii,'criteria.minimum.criteria.benchmark.value']) #find the lowest EPA AL benchmark
         numeric.criterion.label <- min.criteria[min.criteria$criteria.Pollutant == ii,'label'] #find the lowest DEQ AL benchmark
@@ -71,8 +72,7 @@ for(y in unique(mydata_clean_noV$year)){
                         color=Station_Description)) #change point colors by station
         a <- a + geom_point(size = 5) #set the point size
         a <- a + xlab("") + ylab(("ug/L")) #write the labels
-        a <- a + scale_x_date(breaks=df$date, labels=ifelse(is.na(display_dates), "", display_dates), format == "%m/%d")
-        if(subset.B$Basin %in% c("South Coast", "South Umpqua")) a <- a + scale_x_date(breaks=df$date, labels=ifelse(is.na(display_dates), "", display_dates))
+        a <- a + scale_x_date(breaks=df$date, labels=ifelse(is.na(display_dates), "", display_dates))
         a <- a + coord_cartesian(xlim=c(min(subset.ii$date)-1, max(subset.ii$date)+1)) #add a day to beginning and end
         a <- a + theme(aspect.ratio=1)
         a <- a + theme_bw() #blackandwhite theme
@@ -178,7 +178,7 @@ for(B in unique(subset.y$Basin)){
     a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
     a <- a + facet_wrap(~Analyte, drop=TRUE, scales = "free_y")
     a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
-    if(subset.B$Basin %in% c("South Coast", "South Umpqua")) a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d/%y"))
+    if(B %in% c("South Coast", "South Umpqua")) a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d/%y"))
     a <- a + coord_cartesian(xlim=c(min(subset.B$date)-5, max(subset.B$date)+5)) #add 5 day to beginning and end
     a <- a + theme(axis.text.x  = element_text(angle=90, vjust=0.5, color="black", size=10))
     a <- a + theme(axis.text.y  = element_text(color="black", size=10))

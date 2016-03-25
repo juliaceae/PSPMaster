@@ -22,14 +22,13 @@ Det.freq.table <- data.frame("Basin"=NA,
                              stringsAsFactors=FALSE)
 
 B <- "Walla Walla"
-B <- "Amazon"
 B <- "Wasco"
 B <- "Hood River"
-ii <- "Chlorpyrifos"
 ii <- "Atrazine"
 ii <- "Hexazinone"
 ii <- "Malathion"
-
+B <- "South Coast"
+ii <- "Diuron"
 
 #### Setting up lists by year
 mydata_clean_noV_list<-list()
@@ -218,6 +217,8 @@ Det.freq.table.new<-ldply(Det.freq.table_list,data.frame)
 head(Det.freq.table.new)
 tail(Det.freq.table.new)
 
+Det.freq.table.new <- Det.freq.table.new[!is.na(Det.freq.table.new$Basin),]
+
 ### STOPPED HERE; note that you will have to change the Det.freq.table to Det.freq.table.new below
 Det.freq.table <- Det.freq.table.new
 ##### Clean up files----
@@ -228,9 +229,53 @@ write.csv(Det.freq.table, paste0(outpath.plot.points,"State_alldates_detection_f
 
 write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
 
-#subset by basin and write out a separate .csv file
+####
+#mydata : subset by basin and write out a separate .csv file
 new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_by_Basin_alldates_datafiles", sep="")) 
 for (B in unique(mydata_clean_noV$Basin)){
   subset.B <- mydata_clean_noV[mydata_clean_noV$Basin == B,]
   write.csv(subset.B, paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_by_Basin_alldates_datafiles\\", B, "_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
 }
+
+####
+#cross tab (updated) the exceedance types and write a .csv by basin and year
+dir.create(paste0('//deqhq1/PSP/Rscripts/Alldates/', Sys.Date(), '/',Sys.Date(), '_updated_det_freq'))
+
+#set your Basin and Year
+B <- "South Umpqua"
+y <- as.integer(201415)
+#B <- "Amazon"
+#y <- as.integer(2015)
+
+aaa <- Det.freq.table.new[Det.freq.table.new$exceed.type != 'Not Calculated' 
+                        & Det.freq.table.new$Station == 'Basin aggregate' 
+                        & Det.freq.table.new$Basin == B 
+                        & Det.freq.table.new$Year == y, ]
+bbb <- Det.freq.table.new[Det.freq.table.new$exceed.type != 'Not Calculated' 
+                        & Det.freq.table.new$Station == B 
+                        & Det.freq.table.new$Year == y,]
+
+bbb$exceed.type <- factor(bbb$exceed.type, levels = c('less than ten percent of benchmark',
+                                                  'between ten and fifty percent of benchmark',
+                                                  'between fifty and 100 percent of benchmark',
+                                                  'greater than 100 percent of benchmark',
+                                                  'no benchmark available'))
+
+aa <- reshape2::dcast(aaa, Parameter ~ exceed.type, value.var = 'percent.det.freq')
+bb <- reshape2::dcast(bbb, Parameter ~ exceed.type, value.var = 'percent.det.freq', drop = FALSE)
+
+ab <- merge(aa, bb, by = 'Parameter', all = TRUE)
+
+#Reorders the columns
+ab <- ab[,c('Parameter','less than ten percent of benchmark',
+            'between ten and fifty percent of benchmark',
+            'between fifty and 100 percent of benchmark',
+            'greater than 100 percent of benchmark',
+            'no benchmark available', 'Total Detection Freq')]
+
+ab <- ab[ab$'Total Detection Freq' > 0,]
+ab <- ab[ab$Parameter != "Total Solids",]
+ab <- ab[order(ab$'Total Detection Freq', decreasing = TRUE),]
+
+write.csv(ab, row.names = FALSE, file = paste0('//deqhq1/PSP/Rscripts/Alldates/', Sys.Date(), '/',Sys.Date(), '_updated_det_freq', '/', B,'_', y, '_updated_det_freq_savedon', Sys.Date(), '.csv')) 
+

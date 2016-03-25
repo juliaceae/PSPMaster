@@ -599,4 +599,9 @@ mydata_clean_noV[mydata_clean_noV$Station_Description == "Sieben Creek at Hwy 21
 #### Adding year column to mydata_clean_noV
 mydata_clean_noV$year<-as.integer(substr(mydata_clean_noV$date,1,4))
 mydata_clean_noV[mydata_clean_noV$Analyte == "Aminomethylphosponic acid (AMPA)", "Analyte"] <- "AMPA"
+#### South Coast and South Umpqua pilot season spans years 2014-2015
+#aaa <- mydata_clean_noV[mydata_clean_noV$Basin %in% c("South Coast", "South Umpqua") & mydata_clean_noV$year %in% c(2014, 2015),]
+#aaa[aaa$Basin %in% c("South Coast", "South Umpqua") & aaa$year %in% c(2014, 2015),"year"] <- 201415
+mydata_clean_noV[mydata_clean_noV$Basin %in% c("South Coast", "South Umpqua") & mydata_clean_noV$year %in% c(2014, 2015),"year"] <- as.integer(201415)
 
+  

@@ -25,12 +25,13 @@ ii <- "Deisopropylatrazine"
 ii <- "Total Solids"
 B <- "Amazon"
 ii <- "Chlorpyrifos"
-B <- "Yamhill"
+B <- "South Coast"
 B <- "Middle Rogue"
 ii <- "Bifenthrin"
-ii <- "Conductivity"
+ii <- "Diuron"
 ii <- "4,4´-DDE"
 y <- 2015
+y <- as.integer(201415)
 
 #20141023: Delete Walla Walla at the Frog results (because no detections) #32012
 View(mydata_clean_noV[mydata_clean_noV$Station_Number == 32012 & mydata_clean_noV$RESULT != "ND" & mydata_clean_noV$date > as.Date("2015-01-01"),])
@@ -79,6 +80,7 @@ for(y in unique(mydata_clean_noV$year)){
         a <- a + ylim(c(0, max(subset.ii$RESULT_clean.ug.l.subND*1.8))) #set the y range from zero to some multiplier of the max result to increase the head space
         a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
         #benchmarks lines and labels  
+        if(y == as.integer(201415)) y <- "2014-2015"
         if(length(numeric.criterion.graph)==0){  #if there is NO DEQ criteria or EPA benchmark
           title <- (paste0(B, " ", y," \n", ii, "\nNo benchmark available")) 
         }else{
@@ -126,7 +128,7 @@ for(y in unique(mydata_clean_noV$year)){
             }
           }
         }
-        
+
         a <- a + ggtitle(title) #write the title and subtitle
         a <- a + guides(shape = guide_legend(ncol = 2))
         a <- a + theme(legend.position="bottom")
@@ -135,12 +137,15 @@ for(y in unique(mydata_clean_noV$year)){
         a <- a + theme(legend.title=element_blank()) #remove title from legend
         #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=6))
         a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
-        a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
-        if(B == "South Coast") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "            *Myrtle Creek sampled 9/24/14: no detections")))
+        if(B == "South Coast") {
+          a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "            *Myrtle Creek sampled 9/24/14: no detections")))
+        }else{
+          a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+          }
         #             a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
         #                                            x = 0, hjust = -0.1, vjust=0.1,
         #                                            gp = gpar(fontface = "italic", fontsize = 8))) 
-        ggsave(filename = paste0(outpath.plot.points, B, "_", ii, "_", y, "_savedon", Sys.Date(),".jpg"), plot = a)
+        ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_TimeSeries","\\", B, "_", ii, "_", y, "_savedon", Sys.Date(),".jpg"), plot = a)
       }
     }
   }
@@ -174,7 +179,6 @@ for(B in unique(subset.y$Basin)){
                     color=Station_Description)) #change point colors by station
     a <- a + geom_point(size = 4) #set the point size
     a <- a + theme(aspect.ratio=1/2)
-    a <- a + xlab("") + ylab(paste0("ug/L")) + ggtitle(paste0(B, " ", y)) #write the labels and title
     a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
     a <- a + facet_wrap(~Analyte, drop=TRUE, scales = "free_y")
     a <- a + scale_x_date(breaks=unique(subset.B$date), labels=format(unique(subset.B$date), format="%m/%d"))
@@ -182,17 +186,16 @@ for(B in unique(subset.y$Basin)){
     a <- a + coord_cartesian(xlim=c(min(subset.B$date)-5, max(subset.B$date)+5)) #add 5 day to beginning and end
     a <- a + theme(axis.text.x  = element_text(angle=90, vjust=0.5, color="black", size=10))
     a <- a + theme(axis.text.y  = element_text(color="black", size=10))
+    if(y == as.integer(201415)) y <- "2014-2015"
+    a <- a + xlab("") + ylab(paste0("ug/L")) + ggtitle(paste0(B, " ", y)) #write the labels and title
     a <- a + guides(shape = guide_legend(ncol = 2)) #legend in two columns
     a <- a + theme(legend.position="bottom", legend.direction="vertical", legend.text=element_text(size=12), #move legend
                    legend.title=element_blank()) #remove title from legend
-    a
-    
-    a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
-    if(B == "South Coast") a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "        *Myrtle Creek sampled 9/24/14: no detections")))
-    
-    #     a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
-    #                                          x = 0, hjust = -0.1, vjust=0.1,
-    #                                          gp = gpar(fontface = "italic", fontsize = 8))) 
+    if(B == "South Coast") {
+      a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date(), "            *Myrtle Creek sampled 9/24/14: no detections")))
+    }else{
+      a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+    }
     ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_Multiplots\\", "multiplot_", B, "_", y, "_savedon", Sys.Date(),".jpg"), plot = a, scale=1.5)
   }
 }

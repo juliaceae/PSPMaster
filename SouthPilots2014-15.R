@@ -252,7 +252,7 @@ xy <- xy[,c('Parameter','less than ten percent of benchmark',
             'greater than 100 percent of benchmark',
             'no benchmark available', 'Total Detection Freq')]
 
-write.csv(xy, row.names = FALSE, file = paste0('//deqhq1/PSP/Rscripts/Alldates/', Sys.Date(), '/', B,  'updated_det_freq_savedon', Sys.Date(), '.csv')) 
+write.csv(xy, row.names = FALSE, file = paste0('//deqhq1/PSP/Rscripts/Alldates/', Sys.Date(), '/',Sys.Date(), 'updated_det_freq', '/', B, y, 'updated_det_freq_savedon', Sys.Date(), '.csv')) 
 
 
 

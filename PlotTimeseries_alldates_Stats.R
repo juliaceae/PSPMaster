@@ -239,10 +239,13 @@ for (B in unique(mydata_clean_noV$Basin)){
 
 ####
 #cross tab (updated) the exceedance types and write a .csv by basin and year
+library(reshape2)
+
 dir.create(paste0('//deqhq1/PSP/Rscripts/Alldates/', Sys.Date(), '/',Sys.Date(), '_updated_det_freq'))
 
 #set your Basin and Year
 B <- "South Umpqua"
+B <- "South Coast"
 y <- as.integer(201415)
 #B <- "Amazon"
 #y <- as.integer(2015)

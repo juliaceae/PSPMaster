@@ -21,8 +21,16 @@ LatLong <- LatLong[!duplicated(LatLong), ]
 write.csv(LatLong, paste0("\\\\deqhq1\\PSP\\GIS\\DisplayMaps\\Statewide\\","State_Unique_SitesLL_savedon", Sys.Date(),".csv")) 
 write.csv(LatLong, paste0("\\\\deqhq1\\PSP\\GIS\\DisplayMaps\\Statewide\\","State_Unique_SitesLL_savedon", ".csv")) 
 
-#mydata_clean_noV$dnd <- ifelse(as.numeric(mydata_clean_noV$RESULT) < mydata_clean_noV$MRL,0,1)
-detects <- mydata_clean_noV[mydata_clean_noV$dnd == 1,]
+
+
+#Peter, I selected for this year's analysis.  I would like a table to compare multiple years, but it's not time sensitive.
+
+#by year
+currentYear <- 201415
+mydata_clean_noVY <- mydata_clean_noV[mydata_clean_noV$year == currentYear,]
+
+#filter out detections only 
+detects <- mydata_clean_noVY[mydata_clean_noVY$dnd == 1,]
 
 #Remove non-pesticide Analyte results
 #sort(unique(detects$Analyte))
@@ -30,21 +38,22 @@ source("\\\\Deqhq1\\PSP\\Rscripts\\PSPMaster\\PestNameGroups.R")
 detects <- detects[!detects$Analyte %in% Non.Pest,]
 
 #count of Number of samples taken 
-#summarise function is from the plyr package, not the summarize function from the HMisc package.
-N.bystation <- ddply(mydata_clean_noV, .(Station_Number), summarise, N.Samples = length(dnd)) 
-#count of Results detections 
+#this line uses "summarise" function is from the plyr package and does not use the "summarize" function from the HMisc package (loaded in sourced code).
+#Number of analytes analyzed (detects and nondetects) by station.
+N.bystation <- ddply(mydata_clean_noVY, .(Station_Number), summarise, N.Samples = length(dnd)) 
+#N.Detects: count of Results detections 
 N.detects.bystation <- ddply(detects, .(Station_Number), summarise, N.Detects = sum(dnd))
 
-#Steve's table
+#Steve Riley's table
 #N.detects.bystation.byAnalyte  <- table(detects$Station_Number,  detects$Analyte)
-#refine Steve's table to count of ais by station
+#refine Steve's table to count of 
+#number of ais detected by station
 N.Analytes.bystation <- ddply(detects, .(Station_Number), summarise, N.Analytes = length(unique(Analyte)))
 
-#Detections by station and date
+#Number of analytes detected by station and date
 by.st.date <- ddply(detects, .(Station_Number, date), summarise, AI.in.Mixture = sum(dnd))
-#Max detections to site
-#by.st.date <- ddply(by.st.date, .(Station_Number), summarize, Max.n.AI.in.Mixture = max(AI.in.Mixture), date = )
-max.by.st.date <- ddply(by.st.date, .(Station_Number),function(x) {x[which.max(x$AI.in.Mixture),c('AI.in.Mixture', 'date')]})
+#Date of Max number of analytes detected by site
+max.by.st.date <- ddply(by.st.date, .(Station_Number),function(x) {x[which.max(x$AI.in.Mixture),c('AI.in.Mixture', 'date')]}) 
 max.by.st.date <- rename(max.by.st.date, c('AI.in.Mixture' = 'Max.AI.in.Mixture'))
 
 #merge the tables together
@@ -52,10 +61,14 @@ N.ai.bystation.LL <- merge(LatLong, N.bystation, by.x="Station_ID", by.y="Statio
 N.ai.bystation.LL <- merge(N.ai.bystation.LL, N.detects.bystation, by.x="Station_ID", by.y="Station_Number")
 N.ai.bystation.LL <- merge(N.ai.bystation.LL, N.Analytes.bystation, by.x="Station_ID", by.y="Station_Number")
 N.ai.bystation.LL <- merge(N.ai.bystation.LL, max.by.st.date, by.x="Station_ID", by.y="Station_Number")
+N.ai.bystation.LL$percent.det.freq <- N.ai.bystation.LL$N.Detects/N.ai.bystation.LL$N.Samples
+N.ai.bystation.LL <- merge(N.ai.bystation.LL, unique(mydata_clean_noVY[, c(3,4)]), by.x="Station_ID", by.y="Station_Number") #includes all basins in the year
+N.ai.bystation.LL <- N.ai.bystation.LL[order(N.ai.bystation.LL$Station_Description),]
 head(N.ai.bystation.LL)
 
-write.csv(N.ai.bystation.LL, paste0("\\\\deqhq1\\PSP\\GIS\\DisplayMaps\\Statewide\\","State_N.Ai_savedon", Sys.Date(),".csv")) 
-write.csv(N.ai.bystation.LL, paste0("\\\\deqhq1\\PSP\\GIS\\DisplayMaps\\Statewide\\","State_N.Ai_savedon", ".csv")) 
+write.csv(N.ai.bystation.LL, paste0("\\\\deqhq1\\PSP\\GIS\\DisplayMaps\\Statewide\\","State_N.Ai_", currentYear, "_savedon", Sys.Date(),".csv")) 
+write.csv(N.ai.bystation.LL, paste0("\\\\deqhq1\\PSP\\GIS\\DisplayMaps\\Statewide\\","State_N.Ai_savedon", currentYear, ".csv")) 
+write.csv(N.ai.bystation.LL, paste0("\\\\deqhq1\\PSP\\Rscripts\\Alldates\\", Sys.Date(), "\\State_N.Ai_", currentYear, "_savedon", Sys.Date(),".csv")) 
 
 #################################################################################
 #Write a shapefile

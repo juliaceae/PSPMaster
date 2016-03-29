@@ -514,12 +514,12 @@ B <- "Hood River"
 
 ##########################################
 ##########################################
-#SCRATCH COMBINING
+#combined annual average concentration and percent detection frequency graphs
     source('//deqhq1/PSP/Rscripts/PSPMaster/PlotTimeseries_alldates_Stats.R', encoding = 'UTF-8')
     
 dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_AnnualAverageFreq", sep="")) 
 
-ii <- "Chlorpyrifos"
+ii <- "Diuron"
 B <- "Clackamas"
 
 Det.freq.table$Average <- as.numeric(Det.freq.table$Average)
@@ -539,30 +539,37 @@ for (B in unique(Det.freq.table$Basin)) {
 
 f1 <- subset.ii 
 f2 <- subset.ii 
+f3 <- subset.ii 
 #determine title names
 f1$panel <- "Average annual concentration (ug/L)" 
+f1$panel <- factor(f1$panel, levels=c("Maximum annual concentration (ug/L)", "Average annual concentration (ug/L)", "Percent Detection Frequency"))
 f2$panel <- "Percent Detection Frequency" 
-f <- rbind(f1, f2) 
+f2$panel <- factor(f2$panel, levels=c("Maximum annual concentration (ug/L)", "Average annual concentration (ug/L)", "Percent Detection Frequency"))
+f3$panel <- "Maximum annual concentration (ug/L)" 
+f3$panel <- factor(f3$panel, levels=c("Maximum annual concentration (ug/L)", "Average annual concentration (ug/L)", "Percent Detection Frequency"))
+#f <- rbind(f3, f1, f2) 
+#f$panel <- factor(f$panel, levels=c("Maximum annual concentration (ug/L)", "Average annual concentration (ug/L)", "Percent Detection Frequency"))
 
 #outline the top panel
-ff <- ggplot(data = f, mapping = aes(x = Year, y = Average))
+a <- ggplot(data = f1, mapping = aes(x = Year, y = Average))
 #outline the bottom panel
-#ff <- ff + facet_grid(panel~., scale="free", switch = 'y')
-ff <- ff + facet_wrap(~panel, scale="free", ncol=1) #move the plot titles to the top of each plot
+#a <- a + facet_grid(panel~., scale="free", switch = 'y')
+a <- a + facet_wrap(~panel, scale="free", ncol=1) #move the plot titles to the top of each plot
+#plot the Max panel
+a <- a + layer(data=f3, mapping = aes(x = Year, y = Max), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+#a <- a + layer(data=f3, mapping = aes(x = Year, y = Max), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+#a1 <- ggplot(data=f3, mapping = aes(x = Year, y = Max))#, geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+#a1 <- a1 + geom_point()
 #plot the top panel
-ff <- ff + layer(data=f1, mapping = aes(x = Year, y = Average), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+a <- a + layer(data=f1, mapping = aes(x = Year, y = Average), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+#a <- a + layer(data=f1, mapping = aes(x = Year, y = Average), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+#a2 <- ggplot(data=f1, mapping = aes(x = Year, y = Average), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+#a2 <- a2 + geom_point()
 #plot the bottom panel
-ff <- ff + layer(data=f2, mapping = aes(x = Year, y = percent.det.freq), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
-
-ff <- ff + xlab("Year") + ylab(("")) #write the labels
-ff <- ff + theme_bw() #blackandwhite theme
-ff <- ff + scale_x_datetime(breaks=unique(subset.ii$Year), labels=format(unique(subset.ii$Year), format="%Y"))
-ff <- ff + theme()
-
-a <- ff
-#a <- a + geom_point(size = 5) #set the point size
-#a <- a + ylim(c(0, 100)) #set the y range from zero to some multiplier of the max result to increase the head space
-a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
+a <- a + layer(data=f2, mapping = aes(x = Year, y = percent.det.freq), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+#a <- a + layer(data=f2, mapping = aes(x = Year, y = percent.det.freq), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+#a3 <- ggplot(data=f2, mapping = aes(x = Year, y = percent.det.freq), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+#a3 <- a3 + geom_point()
 
 numeric.criterion.graph <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == ii,'criteria.minimum.criteria.benchmark.value']) #find the lowest EPA AL benchmark
 numeric.criterion.label <- min.criteria[min.criteria$criteria.Pollutant == ii,'label'] #find the lowest DEQ AL benchmark
@@ -615,6 +622,12 @@ if(length(numeric.criterion.graph)==0){  #if there is NO DEQ criteria or EPA ben
   }
 }
 
+a <- a + xlab("Year") + ylab(("")) #write the labels
+a <- a + theme_bw() #blackandwhite theme
+a <- a + scale_x_datetime(breaks=unique(subset.ii$Year), labels=format(unique(subset.ii$Year), format="%Y"))
+a <- a + theme(axis.title.x  = element_text(size=10))
+a <- a + theme()
+a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
 a <- a + ggtitle(title) #write the title and subtitle
 a <- a + guides(shape = guide_legend(ncol = 2))
 a <- a + theme(legend.position="bottom")
@@ -622,12 +635,15 @@ a <- a + theme(legend.direction="vertical")
 a <- a + theme(legend.text=element_text(size=10))
 a <- a + theme(legend.title=element_blank()) #remove title from legend
 #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
-a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
+a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=8))
+a <- a + theme(aspect.ratio=0.25)
 a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
 #             a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
 #                                            x = 0, hjust = -0.1, vjust=0.1,
 #                                            gp = gpar(fontface = "italic", fontsize = 8))) 
-ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_AnnualAverageFreq\\", "AnnualAverageFrequency", B, "_", ii, "_", "_savedon", Sys.Date(),".jpg"), plot = a)
+ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_AnnualAverageFreq\\", "AnnualAverageFrequency", B, "_", ii, "_", "_savedon", Sys.Date(),".jpg"),
+       plot = a, 
+       scale = 1.3)
     }
   }
 }

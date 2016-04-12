@@ -436,7 +436,10 @@ for(i in 1:nrow(min.criteria)){
       }else{
         if(is.na(min.criteria$min.DEQ.criteria[i])==TRUE & is.na(min.criteria$min.EPA.criteria[i])==TRUE){  #if there is no DEQ criteria or EPA benchmark
           min.criteria$label[i] <- (paste0("\nNo benchmark available")) 
-        }
+        }else{
+          if(min.criteria$criteria.Pollutant[i] == "Pentachlorophenol"){  #Pentachlorophenol Freshwater WQS criteria are pH dependent
+            min.criteria$label[i] <- (paste0("\nDEQ WQS = ", min.criteria$min.DEQ.criteria[i], " ug/L at assumed pH 7.8"))
+          }
       }
     }
   }

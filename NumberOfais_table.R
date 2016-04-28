@@ -26,7 +26,7 @@ write.csv(LatLong, paste0("\\\\deqhq1\\PSP\\GIS\\DisplayMaps\\Statewide\\","Stat
 #Peter, I selected for this year's analysis.  I would like a table to compare multiple years, but it's not time sensitive.
 
 #by year
-currentYear <- 201415
+currentYear <- 2012
 mydata_clean_noVY <- mydata_clean_noV[mydata_clean_noV$year == currentYear,]
 
 #filter out detections only 
@@ -73,3 +73,44 @@ write.csv(N.ai.bystation.LL, paste0("\\\\deqhq1\\PSP\\Rscripts\\Alldates\\", Sys
 #################################################################################
 #Write a shapefile
 ##################################################################################
+
+################################################
+library("plyr")
+#install.packages("dplyr")
+library("dplyr")
+#install.packages("reshape")
+library("reshape")
+
+max.Conc <- summarise(group_by(mydata_clean_noV[mydata_clean_noV$dnd == 1 & mydata_clean_noV$Analyte != "Total Solids",], 
+                     Basin, Analyte),
+            max.Conc = max((RESULT_clean.ug.l)))
+
+
+#tapply(ffm$value, ffm$treatment, sum)
+#tapply(mydata_clean_noV[is.na(mydata_clean_noV$RESULT_clean.ug.l)==FALSE,]$RESULT_clean.ug.l, mydata_clean_noV[is.na(mydata_clean_noV$RESULT_clean.ug.l)==FALSE,]$Analyte, (length))
+#tapply(mydata_clean_noV[is.na(mydata_clean_noV$RESULT_clean.ug.l)==FALSE,'RESULT_clean.ug.l'], 
+#       mydata_clean_noV[is.na(mydata_clean_noV$RESULT_clean.ug.l)==FALSE,'Analyte'], 
+#       (max))
+
+
+options(digits = 3)
+options(scipen=999)
+
+mmm <- mydata_clean_noV[ ,c("Analyte", "code", "Basin", "Station_Description", "RESULT_clean.ug.l")]
+mmm <- mydata_clean_noV[ ,c("Analyte", "code", "Basin", "Station_Description", "RESULT_clean.ug.l", "year")]
+mmm$year <- as.factor(mmm$year)
+mmm <- melt(mmm)
+#Maximum concentration (ug/L) by basin by analyte in 2015.
+StateCompare.max <- cast(mmm[mmm$year == 2015,],  Analyte ~ Basin, function(x) max(x, na.rm=TRUE), margins = "grand_col")
+SCm <- melt(StateCompare.max)
+SCm[SCm$value == -Inf, "value"] <- ""
+StateCompare.max <- cast(SCm, Analyte~Basin)
+StateCompare.max <- StateCompare.max[,!(names(StateCompare.max) %in% "Hood River POCIS_SPMD")]
+write.csv(StateCompare.max, paste0("//deqhq1/PSP/AnnualReports/Statewide_2015_max_values_savedon", Sys.Date(), ".csv")) 
+
+#StateCompare.max <- cast(mmm,  Analyte ~ Basin, function(x) max(x, na.rm=TRUE))
+#StateCompare <- cast(mmm,  Analyte ~ ., function(x) c(n = length(x), max = max(x, na.rm=TRUE)))
+#StateCompare.nsample <- cast(mmm, Analyte ~ Basin, function(x) n.samples = length((na.omit(x))))
+#StateCompare.n.ai <- cast(mmm, Basin ~ ., function(x) n.analytes = length((na.omit(x))))
+N.Analytes.byBasin <- ddply(mydata_clean_noV[mydata_clean_noV$dnd == 1 & mydata_clean_noV$year == 2015,], .(Basin), summarise, N.Analytes = length(unique(Analyte)))
+N.Analytes.byBasin <- N.Analytes.byBasin[order(N.Analytes.byBasin$N.Analytes, decreasing = TRUE),]

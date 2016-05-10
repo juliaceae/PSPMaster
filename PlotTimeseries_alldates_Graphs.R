@@ -3,7 +3,7 @@
 #Julia Crown
 
 
-source('//deqhq1/PSP/Rscripts/PSPMaster/PlotTimeseries_alldates.R', encoding = 'UTF-8')
+#source('//deqhq1/PSP/Rscripts/PSPMaster/PlotTimeseries_alldates.R', encoding = 'UTF-8')
 
 #########################################################################################################
 ####loop through analyte list and graph multiple stations
@@ -28,7 +28,7 @@ ii <- "Chlorpyrifos"
 B <- "South Coast"
 B <- "Middle Rogue"
 ii <- "Bifenthrin"
-ii <- "Diuron"
+ii <- "Pentachlorophenol"
 ii <- "4,4´-DDE"
 y <- 2015
 y <- as.integer(201415)
@@ -202,112 +202,112 @@ for(B in unique(subset.y$Basin)){
 
 
 ##################################################################################
-#one off graph for average annual detection frequency for Hood Diuron by site
-source('//deqhq1/PSP/Rscripts/PSPMaster/PlotTimeseries_alldates_Stats.R', encoding = 'UTF-8')
-Det.freq.table$Average <- as.numeric(Det.freq.table$Average)
-Det.freq.table$Year <- as.POSIXct(strptime(Det.freq.table$Year, format = '%Y'))
-
-ii <- "Diuron"
-B <- "Hood River"
-
-  subset.B <- Det.freq.table[Det.freq.table$Basin == B,]
-  subset.B <- subset.B[subset.B$Station != "Basin aggregate",] #20141023 to fix the number of stations on WWatTheFrog.  
-  subset.B <- subset.B[subset.B$Average != "by exceed type",] #20141023 to fix the number of stations on WWatTheFrog.  
-  subset.B <- subset.B[is.na(subset.B$Median)==FALSE,]
-  subset.B <- subset.B[is.na(subset.B$Station)==FALSE,]
-  subset.B <- subset.B[subset.B$Station.Description %in% c("Lenz Creek at mouth", "Neal Creek at mouth (upstream of bridge)"),] #20141023 to fix the number of stations on WWatTheFrog.  
-  
-    subset.ii <- subset.B[subset.B$Parameter == ii,]
-    if(ii == "Aminomethylphosponic acid (AMPA)") subset.ii[subset.ii$Parameter == "Aminomethylphosponic acid (AMPA)", "Parameter"] <- "AMPA"
-    if(length(subset.ii$Average > 0) & any(subset.ii$Average > 0)){
-      print(paste0(B, " ", ii, ": n=", length(subset.ii$Average)))
-      
-      
-      numeric.criterion.graph <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == ii,'criteria.minimum.criteria.benchmark.value']) #find the lowest EPA AL benchmark
-      numeric.criterion.label <- min.criteria[min.criteria$criteria.Pollutant == ii,'label'] #find the lowest DEQ AL benchmark
-      a <- ggplot(data = subset.ii, #data source is the subset of Basin and analyte
-                  aes(x = Year, #x axis dates
-                      y = Average, #y axis is numeric result
-                      group=Station.Description, #change point shapes by station
-                      color=Station.Description)) #change point colors by station
-      a <- a + geom_point(size = 5) #set the point size
-#      a <- a + geom_line() #set the point size
-      a <- a + xlab("") + ylab(("Average Annual Concentration (ug/L)")) #write the labels
-      a <- a + scale_x_datetime(breaks=unique(subset.ii$Year), labels=format(unique(subset.ii$Year), format="%Y"))
-      #a <- a + scale_x_date(breaks=unique(subset.B$Year), labels=format(unique(subset.B$Year), format="%Y"))
-      a <- a + coord_cartesian(xlim=c(as.POSIXct(strptime(2009, format = '%Y')), max(subset.ii$Year)+1)) #add a day to beginning and end
-      a <- a + theme(aspect.ratio=1)
-      a <- a + theme_bw() #blackandwhite theme
-      a <- a + ylim(c(0, max(subset.ii$Average)*1.8)) #set the y range from zero to some multiplier of the max result to increase the head space
-#      a <- a + xlim(c(2009, max(subset.ii$Year))) #set the y range from zero to some multiplier of the max result to increase the head space
-      a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
-      #benchmarks lines and labels  
-      if(length(numeric.criterion.graph)==0){  #if there is NO DEQ criteria or EPA benchmark
-        title <- (paste0(B, " "," \n", ii, "\nNo benchmark available")) 
-      }else{
-        if(ii != "Chlorpyrifos" 
-           & ii != "2,4-D" 
-           & ii != "Atrazine" 
-           & ii != "Simazine" 
-           #& ii != "Deisopropylatrazine" 
-           #& ii != "Desethylatrazine" 
-           & length(numeric.criterion.graph)>0){  #list of names of the exceptions#if there IS DEQ criteria or EPA benchmark
-          a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
-          title <- (paste0(B, " "," \n", ii, numeric.criterion.label))
-        }else{
-          if(ii == "Chlorpyrifos"){  #Chlorpyrifos is only standard where we draw both lines
-            a <- a + geom_hline(yintercept=0.083, linetype=2)  #draw Acute Chlorpyrifos WQS (only graph with two WQS)
-            a <- a + geom_hline(yintercept=0.041, linetype=1)  #draw Chronic Chlorpyrifos WQS (only graph with two WQS)
-            title <- (paste0(B, " "," \n", ii, numeric.criterion.label))
-          }else{
-            if(ii == "2,4-D"){  #Using the "2,4-D Acids and Salts"  
-              a <- a + geom_hline(yintercept=13.1)  
-              title <- (paste0(B, " "," \n", ii, "\nEPA benchmark = 13.1 ug/L "))
-            }else{
-              if(ii == "Atrazine"){  #Proposed EPA benchmarks 12/17/14  
-                a <- a + geom_hline(yintercept=1.0, linetype=1)  #draw solid last year's EPA benchmark
-                a <- a + geom_hline(yintercept=0.001, linetype=2)  #draw dashed proposed EPA benchmark
-                title <- (paste0(B, " ", " \n", ii, numeric.criterion.label))
-              }else{
-                if(ii == "Simazine"){  #Proposed EPA benchmarks 12/17/14  
-                  a <- a + geom_hline(yintercept=36, linetype=1)  #draw solid line last year's EPA benchmark
-                  a <- a + geom_hline(yintercept=2.24, linetype=2)  #draw dashed line proposed EPA benchmark
-                  title <- (paste0(B, " "," \n", ii, numeric.criterion.label))
-                }else{
-                  if(ii == "Deisopropylatrazine"){  #Proposed EPA benchmarks 12/17/14  
-                    a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
-                    title <- (paste0(B, " "," \n", "Triazine DIA degradate", numeric.criterion.label))
-                  }else{
-                    if(ii == "Desethylatrazine"){  #Proposed EPA benchmarks 12/17/14  
-                      a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
-                      title <- (paste0(B, " "," \n", "Triazine DEA degradate", numeric.criterion.label))
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      a <- a + ggtitle(title) #write the title and subtitle
-      a <- a + guides(shape = guide_legend(ncol = 2))
-      a <- a + theme(legend.position="bottom")
-      a <- a + theme(legend.direction="vertical")
-      a <- a + theme(legend.text=element_text(size=12))
-      a <- a + theme(legend.title=element_blank()) #remove title from legend
-      #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
-      a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=12))
-      a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
-      #             a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
-      #                                            x = 0, hjust = -0.1, vjust=0.1,
-      #                                            gp = gpar(fontface = "italic", fontsize = 8))) 
-      if(ii == "Diuron") ggsave(filename = paste0(outpath.plot.points, "AverageAnnualConc", B, "LenzNeal_", ii, "_", "_savedon", Sys.Date(),"_points.jpg"), plot = a)
-    }
+# #one off graph for average annual detection frequency for Hood Diuron by site
+# source('//deqhq1/PSP/Rscripts/PSPMaster/PlotTimeseries_alldates_Stats.R', encoding = 'UTF-8')
+# Det.freq.table$Average <- as.numeric(Det.freq.table$Average)
+# Det.freq.table$Year <- as.POSIXct(strptime(Det.freq.table$Year, format = '%Y'))
+# 
+# ii <- "Diuron"
+# B <- "Hood River"
+# 
+#   subset.B <- Det.freq.table[Det.freq.table$Basin == B,]
+#   subset.B <- subset.B[subset.B$Station != "Basin aggregate",] #20141023 to fix the number of stations on WWatTheFrog.  
+#   subset.B <- subset.B[subset.B$Average != "by exceed type",] #20141023 to fix the number of stations on WWatTheFrog.  
+#   subset.B <- subset.B[is.na(subset.B$Median)==FALSE,]
+#   subset.B <- subset.B[is.na(subset.B$Station)==FALSE,]
+#   subset.B <- subset.B[subset.B$Station.Description %in% c("Lenz Creek at mouth", "Neal Creek at mouth (upstream of bridge)"),] #20141023 to fix the number of stations on WWatTheFrog.  
+#   
+#     subset.ii <- subset.B[subset.B$Parameter == ii,]
+#     if(ii == "Aminomethylphosponic acid (AMPA)") subset.ii[subset.ii$Parameter == "Aminomethylphosponic acid (AMPA)", "Parameter"] <- "AMPA"
+#     if(length(subset.ii$Average > 0) & any(subset.ii$Average > 0)){
+#       print(paste0(B, " ", ii, ": n=", length(subset.ii$Average)))
+#       
+#       
+#       numeric.criterion.graph <- as.numeric(min.criteria[min.criteria$criteria.Pollutant == ii,'criteria.minimum.criteria.benchmark.value']) #find the lowest EPA AL benchmark
+#       numeric.criterion.label <- min.criteria[min.criteria$criteria.Pollutant == ii,'label'] #find the lowest DEQ AL benchmark
+#       a <- ggplot(data = subset.ii, #data source is the subset of Basin and analyte
+#                   aes(x = Year, #x axis dates
+#                       y = Average, #y axis is numeric result
+#                       group=Station.Description, #change point shapes by station
+#                       color=Station.Description)) #change point colors by station
+#       a <- a + geom_point(size = 5) #set the point size
+# #      a <- a + geom_line() #set the point size
+#       a <- a + xlab("") + ylab(("Average Annual Concentration (ug/L)")) #write the labels
+#       a <- a + scale_x_datetime(breaks=unique(subset.ii$Year), labels=format(unique(subset.ii$Year), format="%Y"))
+#       #a <- a + scale_x_date(breaks=unique(subset.B$Year), labels=format(unique(subset.B$Year), format="%Y"))
+#       a <- a + coord_cartesian(xlim=c(as.POSIXct(strptime(2009, format = '%Y')), max(subset.ii$Year)+1)) #add a day to beginning and end
+#       a <- a + theme(aspect.ratio=1)
+#       a <- a + theme_bw() #blackandwhite theme
+#       a <- a + ylim(c(0, max(subset.ii$Average)*1.8)) #set the y range from zero to some multiplier of the max result to increase the head space
+# #      a <- a + xlim(c(2009, max(subset.ii$Year))) #set the y range from zero to some multiplier of the max result to increase the head space
+#       a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
+#       #benchmarks lines and labels  
+#       if(length(numeric.criterion.graph)==0){  #if there is NO DEQ criteria or EPA benchmark
+#         title <- (paste0(B, " "," \n", ii, "\nNo benchmark available")) 
+#       }else{
+#         if(ii != "Chlorpyrifos" 
+#            & ii != "2,4-D" 
+#            & ii != "Atrazine" 
+#            & ii != "Simazine" 
+#            #& ii != "Deisopropylatrazine" 
+#            #& ii != "Desethylatrazine" 
+#            & length(numeric.criterion.graph)>0){  #list of names of the exceptions#if there IS DEQ criteria or EPA benchmark
+#           a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
+#           title <- (paste0(B, " "," \n", ii, numeric.criterion.label))
+#         }else{
+#           if(ii == "Chlorpyrifos"){  #Chlorpyrifos is only standard where we draw both lines
+#             a <- a + geom_hline(yintercept=0.083, linetype=2)  #draw Acute Chlorpyrifos WQS (only graph with two WQS)
+#             a <- a + geom_hline(yintercept=0.041, linetype=1)  #draw Chronic Chlorpyrifos WQS (only graph with two WQS)
+#             title <- (paste0(B, " "," \n", ii, numeric.criterion.label))
+#           }else{
+#             if(ii == "2,4-D"){  #Using the "2,4-D Acids and Salts"  
+#               a <- a + geom_hline(yintercept=13.1)  
+#               title <- (paste0(B, " "," \n", ii, "\nEPA benchmark = 13.1 ug/L "))
+#             }else{
+#               if(ii == "Atrazine"){  #Proposed EPA benchmarks 12/17/14  
+#                 a <- a + geom_hline(yintercept=1.0, linetype=1)  #draw solid last year's EPA benchmark
+#                 a <- a + geom_hline(yintercept=0.001, linetype=2)  #draw dashed proposed EPA benchmark
+#                 title <- (paste0(B, " ", " \n", ii, numeric.criterion.label))
+#               }else{
+#                 if(ii == "Simazine"){  #Proposed EPA benchmarks 12/17/14  
+#                   a <- a + geom_hline(yintercept=36, linetype=1)  #draw solid line last year's EPA benchmark
+#                   a <- a + geom_hline(yintercept=2.24, linetype=2)  #draw dashed line proposed EPA benchmark
+#                   title <- (paste0(B, " "," \n", ii, numeric.criterion.label))
+#                 }else{
+#                   if(ii == "Deisopropylatrazine"){  #Proposed EPA benchmarks 12/17/14  
+#                     a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
+#                     title <- (paste0(B, " "," \n", "Triazine DIA degradate", numeric.criterion.label))
+#                   }else{
+#                     if(ii == "Desethylatrazine"){  #Proposed EPA benchmarks 12/17/14  
+#                       a <- a + geom_hline(yintercept=numeric.criterion.graph)  #draw it
+#                       title <- (paste0(B, " "," \n", "Triazine DEA degradate", numeric.criterion.label))
+#                     }
+#                   }
+#                 }
+#               }
+#             }
+#           }
+#         }
+#       }
+#       
+#       a <- a + ggtitle(title) #write the title and subtitle
+#       a <- a + guides(shape = guide_legend(ncol = 2))
+#       a <- a + theme(legend.position="bottom")
+#       a <- a + theme(legend.direction="vertical")
+#       a <- a + theme(legend.text=element_text(size=12))
+#       a <- a + theme(legend.title=element_blank()) #remove title from legend
+#       #a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=10))
+#       a <- a + theme(axis.text.x = element_text(angle=90, vjust=0.5, color="black", size=12))
+#       a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+#       #             a <- arrangeGrob((a), sub = textGrob(paste0("prepared by Julia Crown, ODEQ, ", Sys.Date()), 
+#       #                                            x = 0, hjust = -0.1, vjust=0.1,
+#       #                                            gp = gpar(fontface = "italic", fontsize = 8))) 
+#       if(ii == "Diuron") ggsave(filename = paste0(outpath.plot.points, "AverageAnnualConc", B, "LenzNeal_", ii, "_", "_savedon", Sys.Date(),"_points.jpg"), plot = a)
+#     }
 
 ##########################################
 #combined annual average concentration and percent detection frequency graphs
-    source('//deqhq1/PSP/Rscripts/PSPMaster/PlotTimeseries_alldates_Stats.R', encoding = 'UTF-8')
+#source('//deqhq1/PSP/Rscripts/PSPMaster/PlotTimeseries_alldates_Stats.R', encoding = 'UTF-8')
     
 dir.create(paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date())) 
 dir.create(paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_AnnualAverageFreq")) 
@@ -712,3 +712,154 @@ ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\
 #   }else{print(paste0("non-detect_"))}
 # }
 # }
+####################################################
+#One off graph requests for Yamhill and Pudding 20160509
+library(ggplot2)
+library(gridExtra)
+
+Det.freq.table$Average <- as.numeric(Det.freq.table$Average)
+#Det.freq.table$Year <- as.POSIXct(strptime(Det.freq.table$Year, format = '%Y'))
+Det.freq.table[Det.freq.table$Parameter == "Aminomethylphosponic acid (AMPA)", "Parameter"] <- "AMPA"
+Det.freq.table[Det.freq.table$Basin == "Molalla-Pudding", "Basin"] <- "Pudding"
+
+
+#B <- "Yamhill" 
+B <- "Pudding" 
+#stn <- "West Fork Palmer at Webfoot Road Bridge"
+stn <- "Zollner Creek at Dominic Road"
+#stn <- "Little Pudding River at Rambler Road"
+#stn <- "Pudding River at Hwy 99E (Aurora)"
+#ppp <- c("Diuron", "Metolachlor", "Atrazine", "Simazine", "Sulfometuron-methyl") #herbicides Pudding 2012-15
+ppp <- c("Chlorpyrifos", "Methomyl", "Carbaryl", "Imidacloprid", "Ethoprop") #insecticides Pudding 2012-15
+#ppp <- c("Diuron", "Metolachlor", "Oxyfluorfen", "Simazine", "Sulfometuron-methyl") #herbicides WFPalmer 2012-15
+#ppp <- c("Chlorpyrifos", "Endosulfan sulfate", "Diazinon", "Imidacloprid", "Ethoprop") #insecticides WFPalmer 2012-15
+aaa <- Det.freq.table[Det.freq.table$Basin == B 
+               & Det.freq.table$Station.Description == stn
+               & Det.freq.table$Parameter %in% ppp
+              # & Det.freq.table$Year %in% seq(2012, 2015, 1),] #West Fork Palmer 2012-15
+               & Det.freq.table$Year %in% seq(2012, 2015, 1),] #Zollner Creek and Little Pudding at Rambler Rd
+
+f1 <- aaa
+f2 <- aaa
+f3 <- aaa
+
+f1$panel <- "Average annual concentration (ug/L)" 
+f1$panel <- factor(f1$panel, levels=c("Maximum annual concentration (ug/L)", "Average annual concentration (ug/L)", "Percent Detection Frequency (%)"))
+f2$panel <- "Percent Detection Frequency (%)" 
+f2$panel <- factor(f2$panel, levels=c("Maximum annual concentration (ug/L)", "Average annual concentration (ug/L)", "Percent Detection Frequency (%)"))
+f3$panel <- "Maximum annual concentration (ug/L)" 
+f3$panel <- factor(f3$panel, levels=c("Maximum annual concentration (ug/L)", "Average annual concentration (ug/L)", "Percent Detection Frequency (%)"))
+
+#outline the top panel
+a <- ggplot(data = f1, mapping = aes(x = Year, y = Average))
+
+#outline the bottom panel
+a <- a + facet_wrap(~panel, scale="free", ncol=1) #move the plot titles to the top of each plot
+
+#plot the Max panel
+a <- a + layer(data=f3, mapping = aes(x=Year, y=Max, group=Parameter, colour=Parameter, shape=Parameter, size=5), geom="point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+a <- a + layer(data=f3, mapping = aes(x = Year, y = Max, group=Parameter, colour=Parameter), geom =  "line", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+
+#plot the top panel
+a <- a + layer(data=f1, mapping = aes(x = Year, y = Average, group=Parameter, colour=Parameter, shape=Parameter, size=5), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+a <- a + layer(data=f1, mapping = aes(x = Year, y = Average, group=Parameter, colour=Parameter), geom =  "line", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+
+#plot the bottom panel
+a <- a + layer(data=f2, mapping = aes(x = Year, y = percent.det.freq, group=Parameter, colour=Parameter, shape=Parameter, size=5), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+a <- a + layer(data=f2, mapping = aes(x = Year, y = percent.det.freq, group=Parameter, colour=Parameter), geom =  "line", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+
+a <- a + ggtitle(paste0(stn))
+a <- a + expand_limits(y = 0)
+a <- a + scale_y_continuous(expand = c(0.005, 0))
+
+a <- a + xlab("Year") + ylab(("")) #write the labels
+a <- a + theme_bw() #blackandwhite theme
+a <- a + theme(axis.title.x  = element_text(size=10))
+a <- a + theme()
+a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
+a <- a + guides(shape = guide_legend(ncol = 2))
+a <- a + theme(aspect.ratio=0.25)
+a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+#ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Yamhill\\2015Yamhill\\", B, "_", stn, "_Herbicides_savedon", Sys.Date(),".jpg"),
+#ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Yamhill\\2015Yamhill\\", B, "_", stn, "_Insecticides_savedon", Sys.Date(),".jpg"),
+#ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Pudding\\2015Pudding\\", B, "_", stn, "_Herbicides_savedon", Sys.Date(),".jpg"),
+ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Pudding\\2015Pudding\\", B, "_", stn, "_Insecticides_savedon", Sys.Date(),".jpg"),
+       plot = a, 
+       scale = 1.3)
+
+
+####################################################
+####################################################
+#One off graph requests for Yamhill and Pudding 20160509
+library(ggplot2)
+library(gridExtra)
+
+Det.freq.table$Average <- as.numeric(Det.freq.table$Average)
+#Det.freq.table$Year <- as.POSIXct(strptime(Det.freq.table$Year, format = '%Y'))
+Det.freq.table[Det.freq.table$Parameter == "Aminomethylphosponic acid (AMPA)", "Parameter"] <- "AMPA"
+Det.freq.table[Det.freq.table$Basin == "Molalla-Pudding", "Basin"] <- "Pudding"
+
+
+B <- "Yamhill" 
+year.title <- 2014
+year.title <- 2015
+stn.title <- paste0("West Fork Palmer subbasin ", year.title)
+stn <- c("West Fork Palmer at SE Lafayette Hwy", "West Fork Palmer Creek at SE Palmer Creek Road", "West Fork Palmer at Webfoot Road Bridge")
+#stn <- c("Lower Cozine Creek at Davis Street Bridge", "Middle Cozine at Old Sheridan Road")
+ppp <- c("Diuron", "Metolachlor", "Oxyfluorfen", "Simazine", "Sulfometuron-methyl") #herbicides Palmer aggr 2012-15
+#ppp <- c("Chlorpyrifos", "Bifenthrin", "Dimethoate", "Diazinon", "Imidacloprid", "Ethoprop") #insecticides Palmer aggr 2012-15
+aaa <- Det.freq.table[Det.freq.table$Basin == B 
+                      & Det.freq.table$Station.Description %in% stn
+                      & Det.freq.table$Parameter %in% ppp
+                      & Det.freq.table$Year %in% year.title,] #Palmer 2014 or 2015
+                     # & Det.freq.table$Year %in% (2015),] #Palmer 15
+aaa[aaa$Station.Description == "West Fork Palmer at SE Lafayette Hwy", "Station.Description"] <- "at SE Lafayette Hwy"
+aaa[aaa$Station.Description == "West Fork Palmer Creek at SE Palmer Creek Road", "Station.Description"] <- "at SE Palmer Creek Road"
+aaa[aaa$Station.Description == "West Fork Palmer at Webfoot Road Bridge", "Station.Description"] <- "at Webfoot Road Bridge"
+
+f1 <- aaa
+f2 <- aaa
+f3 <- aaa
+
+f1$panel <- "Average annual concentration (ug/L)" 
+f1$panel <- factor(f1$panel, levels=c("Maximum annual concentration (ug/L)", "Average annual concentration (ug/L)", "Percent Detection Frequency (%)"))
+f2$panel <- "Percent Detection Frequency (%)" 
+f2$panel <- factor(f2$panel, levels=c("Maximum annual concentration (ug/L)", "Average annual concentration (ug/L)", "Percent Detection Frequency (%)"))
+f3$panel <- "Maximum annual concentration (ug/L)" 
+f3$panel <- factor(f3$panel, levels=c("Maximum annual concentration (ug/L)", "Average annual concentration (ug/L)", "Percent Detection Frequency (%)"))
+
+#outline the top panel
+a <- ggplot(data = f1, mapping = aes(x = Station.Description, y = Average))
+
+#outline the bottom panel
+a <- a + facet_wrap(~panel, scale="free", ncol=1) #move the plot titles to the top of each plot
+
+#plot the Max panel
+a <- a + layer(data=f3, mapping = aes(x=Station.Description, y=Max, group=Parameter, colour=Parameter, shape=Parameter, size=5), geom="point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+a <- a + layer(data=f3, mapping = aes(x = Station.Description, y = Max, group=Parameter, colour=Parameter), geom =  "line", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+
+#plot the top panel
+a <- a + layer(data=f1, mapping = aes(x = Station.Description, y = Average, group=Parameter, colour=Parameter, shape=Parameter, size=5), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+a <- a + layer(data=f1, mapping = aes(x = Station.Description, y = Average, group=Parameter, colour=Parameter), geom =  "line", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+
+#plot the bottom panel
+a <- a + layer(data=f2, mapping = aes(x = Station.Description, y = percent.det.freq, group=Parameter, colour=Parameter, shape=Parameter, size=5), geom =  "point", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+a <- a + layer(data=f2, mapping = aes(x = Station.Description, y = percent.det.freq, group=Parameter, colour=Parameter), geom =  "line", stat = "identity", position = "identity", params = list(na.rm = FALSE))
+
+a <- a + ggtitle(paste0(stn.title))
+a <- a + expand_limits(y = 0)
+a <- a + scale_y_continuous(expand = c(0.005, 0))
+
+a <- a + xlab("Year") + ylab(("")) #write the labels
+a <- a + theme_bw() #blackandwhite theme
+a <- a + theme(axis.title.x  = element_text(size=10))
+a <- a + theme()
+a <- a + theme(panel.grid.minor.x = element_blank()) #remove minor grid lines
+a <- a + guides(shape = guide_legend(ncol = 2))
+a <- a + theme(aspect.ratio=0.25)
+a <- grid.arrange((a), bottom= (paste0("prepared by Julia Crown, ODEQ, ", Sys.Date())))
+ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Yamhill\\2015Yamhill\\", B, "_", stn.title, "_Herbicides_savedon", Sys.Date(),".jpg"),
+#ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Yamhill\\2015Yamhill\\", B, "_", stn.title, "_Insecticides_savedon", Sys.Date(),".jpg"),
+       plot = a, 
+       scale = 1.3)
+

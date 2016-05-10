@@ -2,11 +2,12 @@
 #Basin and data range
 #Julia Crown
 
-source('//deqhq1/PSP/Rscripts/PSPMaster/PlotTimeseries_alldates.R', encoding = 'UTF-8')
+#source('//deqhq1/PSP/Rscripts/PSPMaster/PlotTimeseries_alldates.R', encoding = 'UTF-8')
 
 ###########################
 ##########################
 ####Output a summary table 
+
 Det.freq.table <- data.frame("Basin"=NA,
                              "Station"=NA, 
                              "Station.Description"=NA,
@@ -21,14 +22,22 @@ Det.freq.table <- data.frame("Basin"=NA,
                              "exceed.type"=NA, 
                              stringsAsFactors=FALSE)
 
-B <- "Walla Walla"
-B <- "Wasco"
-B <- "Hood River"
-ii <- "Atrazine"
-ii <- "Hexazinone"
-ii <- "Malathion"
-B <- "South Coast"
-ii <- "Diuron"
+year.title <- 2015
+#stn.title <- paste0("West Fork Palmer subbasin ", year.title)
+stn.title <- paste0("Cozine Creek subbasin ", year.title)
+#stn <- c("West Fork Palmer at SE Lafayette Hwy", "West Fork Palmer Creek at SE Palmer Creek Road", "West Fork Palmer at Webfoot Road Bridge")
+stn <- c("Lower Cozine Creek at Davis Street Bridge", "Middle Cozine at Old Sheridan Road")
+aaa <- mydata_clean_noV[mydata_clean_noV$Station_Description %in% stn & mydata_clean_noV$year == year.title, ]
+mydata_clean_noV <- aaa
+# B <- "Walla Walla"
+# B <- "Wasco"
+# B <- "Hood River"
+# ii <- "Atrazine"
+# ii <- "Hexazinone"
+# ii <- "Malathion"
+# B <- "Pudding"
+# ii <- "Ametryn"
+# y <- as.integer(2015)
 
 #### Setting up lists by year
 mydata_clean_noV_list<-list()
@@ -95,7 +104,7 @@ for (y in unique(mydata_clean_noV$year)){
       }
       
       ####Four (by station summary statistics)
-      for(i in station.list){
+      for(i in unique(mydata_clean_noV$Station_Number)){
         subset.points <- subset(subset.points0, Station_Number == i)#ccc
         if(length(subset.points$RESULT_clean)>0){
           
@@ -225,9 +234,11 @@ Det.freq.table <- Det.freq.table.new
 
 #Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
 
-write.csv(Det.freq.table, paste0(outpath.plot.points,"State_alldates_detection_frequencies_savedon", Sys.Date(),".csv")) 
+#write.csv(Det.freq.table, paste0(outpath.plot.points,"State_alldates_detection_frequencies_savedon", Sys.Date(),".csv")) 
+write.csv(Det.freq.table, paste0("//deqhq1/PSP/Yamhill/2015Yamhill/",stn.title,"_detection_frequencies_savedon", Sys.Date(),".csv")) 
 
-write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+#write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+write.csv(mydata_clean_noV, paste0("//deqhq1/PSP/Yamhill/2015Yamhill/",stn.title,"_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
 
 ####
 #mydata : subset by basin and write out a separate .csv file
@@ -244,11 +255,14 @@ library(reshape2)
 dir.create(paste0('//deqhq1/PSP/Rscripts/Alldates/', Sys.Date(), '/',Sys.Date(), '_updated_det_freq'))
 
 #set your Basin and Year
-B <- "South Umpqua"
-B <- "South Coast"
-y <- as.integer(201415)
-#B <- "Amazon"
-#y <- as.integer(2015)
+# B <- "South Umpqua"
+# B <- "South Coast"
+# y <- as.integer(201415)
+# B <- "Clackamas"
+B <- "Pudding"
+# B <- "Amazon"
+# B <- "Yamhill"
+y <- as.integer(2015)
 
 aaa <- Det.freq.table.new[Det.freq.table.new$exceed.type != 'Not Calculated' 
                         & Det.freq.table.new$Station == 'Basin aggregate' 
@@ -282,3 +296,115 @@ ab <- ab[order(ab$'Total Detection Freq', decreasing = TRUE),]
 
 write.csv(ab, row.names = FALSE, file = paste0('//deqhq1/PSP/Rscripts/Alldates/', Sys.Date(), '/',Sys.Date(), '_updated_det_freq', '/', B,'_', y, '_updated_det_freq_savedon', Sys.Date(), '.csv')) 
 
+
+#########################
+#Fifteenmile one off detection frequencies for this station (Fifteenmile at Seufert Falls LASARid#36179) only. 
+mmm <- mydata_clean_noV[mydata_clean_noV$Station_Number == 36179 & mydata_clean_noV$year == 2015, 
+                        c("Analyte", "code", "Basin", "Station_Description", "exceed.type", "dnd")]
+mmm$exceed.type <- factor(mmm$exceed.type, levels = c('less than ten percent of benchmark',
+                                                      'between ten and fifty percent of benchmark',
+                                                      'between fifty and 100 percent of benchmark',
+                                                      'greater than 100 percent of benchmark',
+                                                      'no benchmark available'))
+mmm <- melt(mmm)
+PE <- cast(mmm,  Analyte ~ exceed.type, function(x) sum(x, na.rm=FALSE), margins = "grand_col")
+PE.tot <- cast(mmm, Analyte ~ . , function(x) length(x))
+PE <- merge(PEm, PE.tot, by.x = "Analyte", by.y = "Analyte", all.x = TRUE)
+#PEm <- melt(PE)
+PE$det.freq.PE <- PE$value/PE$`(all)`
+PE <- PE[ , c(1,3,5)]
+#PE3 <- ddply(PE2, c("Analyte", "exceed.type"), summarise, det.freq = )
+PE <- melt(PE, measured=c("det.freq.PE"))
+PE <- cast(PE, Analyte ~ exceed.type)
+
+PE <- PE[PE$`(all)` != 0 & PE$Analyte != "Total Solids",]
+PE <- PE[order(PE$`(all)`, decreasing = TRUE),]
+
+write.csv(PE, paste0("//deqhq1/PSP/Wasco/Wasco2015/Fifteenmile_2015_percentexceeds_savedon", Sys.Date(), ".csv")) 
+
+# PE <- ddply(mydata_clean_noV[mydata_clean_noV$Station_Number == 36179 & mydata_clean_noV$year == 2015,], 
+#             c("Analyte", "exceed.type"),
+#             summarise, 
+#             n.detects = sum(dnd), 
+#             n = length(dnd)
+#             )
+# PE.tot <- ddply(mydata_clean_noV[mydata_clean_noV$Station_Number == 36179 & mydata_clean_noV$year == 2015,], 
+#                 c("Analyte"),
+#                 summarise, 
+#                 tot.n = length(dnd)
+#                 )
+# PE2 <- merge(PEm, PE.tot, by.x = "Analyte", by.y = "Analyte", all.x = TRUE)
+
+
+############################################
+#Test of faster det.freq table
+mmm <- mydata_clean_noV[ , c("Analyte", "code", "Basin", "Station_Description", "exceed.type", "dnd")]
+mmm$exceed.type <- factor(mmm$exceed.type, levels = c('less than ten percent of benchmark',
+                                                      'between ten and fifty percent of benchmark',
+                                                      'between fifty and 100 percent of benchmark',
+                                                      'greater than 100 percent of benchmark',
+                                                      'no benchmark available'))
+mmm <- melt(mmm)
+PE <- cast(mmm,  Analyte ~ exceed.type, function(x) sum(x, na.rm=FALSE), margins = "grand_col")
+PE.tot <- cast(mmm, Analyte ~ . , function(x) length(x))
+PE <- merge(PEm, PE.tot, by.x = "Analyte", by.y = "Analyte", all.x = TRUE)
+#PEm <- melt(PE)
+PE$det.freq.PE <- PE$value/PE$`(all)`
+PE <- PE[ , c(1,3,5)]
+#PE3 <- ddply(PE2, c("Analyte", "exceed.type"), summarise, det.freq = )
+PE <- melt(PE, measured=c("det.freq.PE"))
+PE <- cast(PE, Analyte ~ exceed.type)
+
+PE <- PE[PE$`(all)` != 0 & PE$Analyte != "Total Solids",]
+PE <- PE[order(PE$`(all)`, decreasing = TRUE),]
+
+write.csv(PE, paste0("//deqhq1/PSP/Wasco/Wasco2015/Fifteenmile_2015_percentexceeds_savedon", Sys.Date(), ".csv")) 
+
+# PE <- ddply(mydata_clean_noV[mydata_clean_noV$Station_Number == 36179 & mydata_clean_noV$year == 2015,], 
+#             c("Analyte", "exceed.type"),
+#             summarise, 
+#             n.detects = sum(dnd), 
+#             n = length(dnd)
+#             )
+# PE.tot <- ddply(mydata_clean_noV[mydata_clean_noV$Station_Number == 36179 & mydata_clean_noV$year == 2015,], 
+#                 c("Analyte"),
+#                 summarise, 
+#                 tot.n = length(dnd)
+#                 )
+# PE2 <- merge(PEm, PE.tot, by.x = "Analyte", by.y = "Analyte", all.x = TRUE)
+
+
+#########################
+#Yamhill one off detection frequencies for this station (mini-basins) only. 
+library(reshape2)
+#install.packages("plyr")
+library(plyr)
+
+year.title <- 2015
+stn.title <- paste0("West Fork Palmer subbasin ", year.title)
+stn <- c("West Fork Palmer at SE Lafayette Hwy", "West Fork Palmer Creek at SE Palmer Creek Road", "West Fork Palmer at Webfoot Road Bridge")
+#stn <- c("Lower Cozine Creek at Davis Street Bridge", "Middle Cozine at Old Sheridan Road")
+
+mmm <- mydata_clean_noV[mydata_clean_noV$Station_Description %in% stn 
+                        & mydata_clean_noV$year %in% year.title, 
+                        c("Analyte", "code", "Basin", "Station_Description", "exceed.type", "dnd")]
+mmm$exceed.type <- factor(mmm$exceed.type, levels = c('less than ten percent of benchmark',
+                                                      'between ten and fifty percent of benchmark',
+                                                      'between fifty and 100 percent of benchmark',
+                                                      'greater than 100 percent of benchmark',
+                                                      'no benchmark available'))
+mmm <- melt(mmm)
+PE <- cast(mmm,  Analyte ~ exceed.type, function(x) sum(x, na.rm=FALSE), margins = "grand_col")
+PE.tot <- cast(mmm, Analyte ~ . , function(x) length(x))
+PE <- merge(PEm, PE.tot, by.x = "Analyte", by.y = "Analyte", all.x = TRUE)
+#PEm <- melt(PE)
+PE$det.freq.PE <- PE$value/PE$`(all)`
+PE <- PE[ , c(1,3,5)]
+#PE3 <- ddply(PE2, c("Analyte", "exceed.type"), summarise, det.freq = )
+PE <- melt(PE, measured=c("det.freq.PE"))
+PE <- cast(PE, Analyte ~ exceed.type)
+
+PE <- PE[PE$`(all)` != 0 & PE$Analyte != "Total Solids",]
+PE <- PE[order(PE$`(all)`, decreasing = TRUE),]
+
+write.csv(PE, paste0("//deqhq1/PSP/Yamhill/2015Yamhill/W_2015_percentexceeds_savedon", Sys.Date(), ".csv")) 

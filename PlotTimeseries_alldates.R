@@ -159,6 +159,7 @@ myQuery <- c()
 
 ## This line retreives all the pesticide samples received by the lab since 2012 (everything in element).  The query language is written in SQL.
 qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Client LIKE '%Pesticide%' ")
+qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Analyte LIKE '%Linuron%' ")
 ## This line adds the query language to the empty query.
 myQuery <- append(myQuery, qry)
 #}
@@ -424,6 +425,7 @@ min.criteria[min.criteria$criteria.Pollutant == 'Terbuthylazine','criteria.Pollu
 
 ######################################
 min.criteria <- subset(min.criteria, (min.criteria$criteria.minimum.criteria.benchmark.value) != "")
+
 for(i in 1:nrow(min.criteria)){
   if(min.criteria$criteria.Pollutant[i] == "Chlorpyrifos"){  #Chlorpyrifos is only standard where we draw both lines
     min.criteria$label[i] <- (paste0("\nAcute WQS = 0.083 ug/L\nChronic WQS = 0.041 ug/L"))
@@ -436,15 +438,13 @@ for(i in 1:nrow(min.criteria)){
       }else{
         if(is.na(min.criteria$min.DEQ.criteria[i])==TRUE & is.na(min.criteria$min.EPA.criteria[i])==TRUE){  #if there is no DEQ criteria or EPA benchmark
           min.criteria$label[i] <- (paste0("\nNo benchmark available")) 
-        }else{
-          if(min.criteria$criteria.Pollutant[i] == "Pentachlorophenol"){  #Pentachlorophenol Freshwater WQS criteria are pH dependent
-            min.criteria$label[i] <- (paste0("\nDEQ WQS = ", min.criteria$min.DEQ.criteria[i], " ug/L at assumed pH 7.8"))
           }
       }
     }
   }
 }
 
+min.criteria[min.criteria$criteria.Pollutant == "Pentachlorophenol", "label"] <- (paste0("\nDEQ WQS = ", min.criteria[min.criteria$criteria.Pollutant == "Pentachlorophenol", "min.DEQ.criteria"], " ug/L at assumed pH 7.8")) #Pentachlorophenol Freshwater WQS criteria are pH dependent
 min.criteria[min.criteria$criteria.Pollutant=="4,4´-DDE", "label"] <- paste0("\nlowest DEQ WQS= 0.001 ug/L\n*criterion applies to DDT and its metabolites")
 min.criteria[min.criteria$criteria.Pollutant=="4,4´-DDD", "label"] <- paste0("\nlowest DEQ WQS= 0.001 ug/L\n*criterion applies to DDT and its metabolites")
 min.criteria[min.criteria$criteria.Pollutant=="Atrazine", "label"] <- paste0("\nEPA benchmark = 1 ug/L\nproposed EPA benchmark = 0.001 ug/L")
@@ -601,7 +601,7 @@ mydata_clean_noV[mydata_clean_noV$Station_Description == "Sieben Creek at Hwy 21
 
 #### Adding year column to mydata_clean_noV
 mydata_clean_noV$year<-as.integer(substr(mydata_clean_noV$date,1,4))
-mydata_clean_noV[mydata_clean_noV$Analyte == "Aminomethylphosponic acid (AMPA)", "Analyte"] <- "AMPA"
+mydata_clean_noV[mydata_clean_noV$Analyte == "Aminomethylphosphonic acid (AMPA)", "Analyte"] <- "AMPA"
 #### South Coast and South Umpqua pilot season spans years 2014-2015
 #aaa <- mydata_clean_noV[mydata_clean_noV$Basin %in% c("South Coast", "South Umpqua") & mydata_clean_noV$year %in% c(2014, 2015),]
 #aaa[aaa$Basin %in% c("South Coast", "South Umpqua") & aaa$year %in% c(2014, 2015),"year"] <- 201415

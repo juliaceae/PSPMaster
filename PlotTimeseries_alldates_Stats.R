@@ -22,13 +22,6 @@ Det.freq.table <- data.frame("Basin"=NA,
                              "exceed.type"=NA, 
                              stringsAsFactors=FALSE)
 
-year.title <- 2015
-#stn.title <- paste0("West Fork Palmer subbasin ", year.title)
-stn.title <- paste0("Cozine Creek subbasin ", year.title)
-#stn <- c("West Fork Palmer at SE Lafayette Hwy", "West Fork Palmer Creek at SE Palmer Creek Road", "West Fork Palmer at Webfoot Road Bridge")
-stn <- c("Lower Cozine Creek at Davis Street Bridge", "Middle Cozine at Old Sheridan Road")
-aaa <- mydata_clean_noV[mydata_clean_noV$Station_Description %in% stn & mydata_clean_noV$year == year.title, ]
-mydata_clean_noV <- aaa
 # B <- "Walla Walla"
 # B <- "Wasco"
 # B <- "Hood River"
@@ -61,19 +54,19 @@ for (y in unique(mydata_clean_noV$year)){
 for (y in unique(mydata_clean_noV$year)){
   for(B in unique(mydata_clean_noV_list[[y]]$Basin)){
     subset.pointsB <- mydata_clean_noV_list[[y]][mydata_clean_noV_list[[y]]$Basin == B,]
-    #  print(B)
-    
+      # print(B)
+
     for(ii in analytes){
       subset.points0 <- subset(subset.pointsB, Analyte == ii)#aaa
-      #    print(ii)
+      # print(ii)
       
       if((B=="Walla Walla"| B=="Wasco" | B=="Hood River") & (ii == "Chlorpyrifos")){
         subset.points0 <- subset.points0[subset.points0$date <= paste0(y, "-04-30"), ]#Early Spring chlorpyrifos in WW, Wasco, Hood
-        #      print(paste0(B, ii, " Early spring chlorpyrifos"))
+              #print(paste0(B, ii, " Early spring chlorpyrifos"))
       }else{
         if((B=="Walla Walla"| B=="Wasco" | B=="Hood River") & (ii == "Azinphos-methyl (Guthion)" | ii == "Malathion")){
           subset.points0 <- subset.points0[subset.points0$date >= paste0(y, "-05-01"), ]#Late Spring guthion and malathion in WW, Wasco, Hood
-          #        print(paste0(B, ii, " Late spring guthion and malathion"))
+                  #print(paste0(B, ii, " Late spring guthion and malathion"))
         }}
       
       ####Walla Walla distributaries
@@ -136,6 +129,7 @@ for (y in unique(mydata_clean_noV$year)){
                             "exceed.type"="Not Calculated", 
                             stringsAsFactors=FALSE)
           Det.freq.table_list[[y]] <- rbind(df1, Det.freq.table_list[[y]])
+
         }
       }
       
@@ -172,7 +166,8 @@ for (y in unique(mydata_clean_noV$year)){
                           "percent.det.freq"=percent.det.freq, 
                           "exceed.type"="Total Detection Freq", 
                           stringsAsFactors=FALSE)
-        Det.freq.table_list[[y]] <- rbind(df1, Det.freq.table_list[[y]])
+        Det.freq.table_list[[y]] <- rbind(df1, Det.freq.table_list[[y]])          
+  
       }
       
       ####One (By Basin and Analyte and Exceedance Type)
@@ -209,6 +204,8 @@ for (y in unique(mydata_clean_noV$year)){
                             "exceed.type"=iii, 
                             stringsAsFactors=FALSE)
           Det.freq.table_list[[y]] <- rbind(df1, Det.freq.table_list[[y]])
+#          if(B == "Cozine Creek") print(paste0(B, y, ii))}}}
+    
         }
       }
     }
@@ -234,13 +231,13 @@ Det.freq.table <- Det.freq.table.new
 
 #Det.freq.table <- subset(Det.freq.table, percent.det.freq>0) #subset for parameters with detections
 
-#write.csv(Det.freq.table, paste0(outpath.plot.points,"State_alldates_detection_frequencies_savedon", Sys.Date(),".csv")) 
-write.csv(Det.freq.table, paste0("//deqhq1/PSP/Yamhill/2015Yamhill/",stn.title,"_detection_frequencies_savedon", Sys.Date(),".csv")) 
+write.csv(Det.freq.table, paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\", Sys.Date(), "\\State_alldates_detection_frequencies_savedon", Sys.Date(),".csv")) 
+#write.csv(Det.freq.table, paste0("//deqhq1/PSP/Yamhill/2015Yamhill/",stn.title,"_detection_frequencies_savedon", Sys.Date(),".csv")) 
 
-#write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
-write.csv(mydata_clean_noV, paste0("//deqhq1/PSP/Yamhill/2015Yamhill/",stn.title,"_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+write.csv(mydata_clean_noV, paste0(outpath.plot.points,"State_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
+#write.csv(mydata_clean_noV, paste0("//deqhq1/PSP/Yamhill/2015Yamhill/",stn.title,"_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
 
-####
+############################################
 #mydata : subset by basin and write out a separate .csv file
 new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_by_Basin_alldates_datafiles", sep="")) 
 for (B in unique(mydata_clean_noV$Basin)){
@@ -407,4 +404,4 @@ PE <- cast(PE, Analyte ~ exceed.type)
 PE <- PE[PE$`(all)` != 0 & PE$Analyte != "Total Solids",]
 PE <- PE[order(PE$`(all)`, decreasing = TRUE),]
 
-write.csv(PE, paste0("//deqhq1/PSP/Yamhill/2015Yamhill/W_2015_percentexceeds_savedon", Sys.Date(), ".csv")) 
+write.csv(PE, paste0("//deqhq1/PSP/Yamhill/2015Yamhill/WFPalmer_2015_percentexceeds_savedon", Sys.Date(), ".csv")) 

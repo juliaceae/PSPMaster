@@ -113,6 +113,7 @@ basins <- read.csv('P:\\GIS\\PSP_basins\\PSP_Basins_20150427\\PSPDataLASAR_1995o
 basins <- rename(basins, c('PSP_Name' = 'Project', 
                            'Station' = 'Station_ID')) 
 basins[basins$Project == "Hood", "Project"] <- "Hood River"
+basins[basins$Project == "Molalla-Pudding", "Project"] <- "Pudding"
 
 lasar.basin <- merge(basins, lasar, by.x="Station_ID", by.y="Station_ID", all.x=TRUE)
 lasar.basin[lasar.basin$Station_Description == "Cow Creek at mouth", "Project"] <- "South Umpqua"
@@ -603,8 +604,14 @@ mydata_clean_noV[mydata_clean_noV$Station_Description == "Sieben Creek at Hwy 21
 mydata_clean_noV$year<-as.integer(substr(mydata_clean_noV$date,1,4))
 mydata_clean_noV[mydata_clean_noV$Analyte == "Aminomethylphosphonic acid (AMPA)", "Analyte"] <- "AMPA"
 #### South Coast and South Umpqua pilot season spans years 2014-2015
-#aaa <- mydata_clean_noV[mydata_clean_noV$Basin %in% c("South Coast", "South Umpqua") & mydata_clean_noV$year %in% c(2014, 2015),]
-#aaa[aaa$Basin %in% c("South Coast", "South Umpqua") & aaa$year %in% c(2014, 2015),"year"] <- 201415
 mydata_clean_noV[mydata_clean_noV$Basin %in% c("South Coast", "South Umpqua") & mydata_clean_noV$year %in% c(2014, 2015),"year"] <- as.integer(201415)
 
-  
+#### New strategy to generate statistics for "mini-basins" (a subset of stations within a PSP Basin). Duplicate data for mini-basins ####
+miniWFPalmer <- mydata_clean_noV[mydata_clean_noV$Station_Description %in% c("West Fork Palmer at SE Lafayette Hwy", 
+                                                                    "West Fork Palmer Creek at SE Palmer Creek Road", 
+                                                                    "West Fork Palmer at Webfoot Road Bridge"),]
+miniWFPalmer$Basin <- "West Fork Palmer"
+miniCozine <- mydata_clean_noV[mydata_clean_noV$Station_Description %in% c("Lower Cozine Creek at Davis Street Bridge", 
+                                                                           "Middle Cozine at Old Sheridan Road"),]
+miniCozine$Basin <- "Cozine Creek"
+mydata_clean_noV <- rbind(mydata_clean_noV, miniWFPalmer, miniCozine)

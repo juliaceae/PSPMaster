@@ -68,7 +68,7 @@ lasar <- read.csv('\\\\deqlab1\\wqm\\PSP\\Data\\LASARDataPull1995Current\\PSPDat
 #Match the Element column names Basin, Station_Number, Station_Description, date, Analyte, RESULT, MRL, Units, SampleType, RESULT_clean, "RESULT_clean.ug.l"=NA, "RESULT_clean.ug.l.subND"=NA
 #lasar$Client <- 'Pesticide Stewardship Partnerships'
 #lasar$Project <- ""
-lasar <- rename(lasar, c('Sampling_Event' = 'Work_Order', 
+lasar <- plyr::rename(lasar, c('Sampling_Event' = 'Work_Order', 
                          #'Sampling.Subproject.Name' = 'Project',
                          'Station' = 'Station_ID',
                          'Station_Description' = 'Station_Description',
@@ -110,7 +110,7 @@ lasar$Sampled_Date <- as.Date(strptime(lasar$Sampled_Date, format="%m/%d/%Y"))
 
 #add the Basin to each sample point 
 basins <- read.csv('P:\\GIS\\PSP_basins\\PSP_Basins_20150427\\PSPDataLASAR_1995onUniqueStations2.csv', stringsAsFactors=FALSE) #This file came from a GIS join. 
-basins <- rename(basins, c('PSP_Name' = 'Project', 
+basins <- plyr::rename(basins, c('PSP_Name' = 'Project', 
                            'Station' = 'Station_ID')) 
 basins[basins$Project == "Hood", "Project"] <- "Hood River"
 basins[basins$Project == "Molalla-Pudding", "Project"] <- "Pudding"
@@ -127,8 +127,6 @@ lasar.basin <- lasar.basin[lasar.basin$Station_Description != "Rose Creek upstre
 #[4] "Fletcher Drain (OWYDRN002)"                           
 #[5] "Overstreet Drain (OWYDRN001)"                         
 #[6] "Rose Creek upstream of Sieben Parkway"    
-
-
 
 require(plyr)
 
@@ -160,7 +158,7 @@ myQuery <- c()
 
 ## This line retreives all the pesticide samples received by the lab since 2012 (everything in element).  The query language is written in SQL.
 qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Client LIKE '%Pesticide%' ")
-qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Analyte LIKE '%Linuron%' ")
+#qry <- paste0("SELECT * FROM dbo.Repo_Result WHERE  Analyte LIKE '%Linuron%' ") Request for Hoogeweg
 ## This line adds the query language to the empty query.
 myQuery <- append(myQuery, qry)
 #}
@@ -194,7 +192,7 @@ mydata$Sampled_Date <- as.Date(strptime(mydata$Sampled_Date, format="%d %b %Y"))
 mydata <- rbind(mydata[,c('Project', 'Station_ID', 'Station_Description', 'Sampled_Date', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType', 'DQL', 'Matrix')], 
                 lasar.basin[,c('Project', 'Station_ID', 'Station_Description', 'Sampled_Date', 'OrigAnalyte', 'Result', 'MRL', 'Units', 'SampleType', 'DQL', 'Matrix')])
 
-mydata_clean <- rename(mydata, 
+mydata_clean <- plyr::rename(mydata, 
                  c('Project' = 'Basin', 
                    'Station_ID' = 'Station_Number', 
                    'Station_Description' = 'Station_Description', 
@@ -340,16 +338,20 @@ detections <- mydata_clean[mydata_clean$dnd == 1,]
 analytes <- unique(detections$Analyte) #list of detected analytes
 ######################################
 
-# subset detections
-# detections <- mydata_clean[mydata_clean$dnd == 1,]
-# analytes <- unique(detections$Analyte) #list of detected analytes
-# analytes <- unique(mmm$Analyte) #list of detected analytes
-# sort(analytes)
+
+
+
+## start work here:
+
+
+
+
+
 
 ####Establish Benchmarks and Exceedances
 ####Currently doing this step in "ToxicsCriteriaPSP.R"  
 min.criteria <- min.AQL.1 
-min.criteria <- rename(min.criteria , replace = c('Pollutant' = 'criteria.Pollutant',
+min.criteria <- plyr::rename(min.criteria , replace = c('Pollutant' = 'criteria.Pollutant',
                                                   'min.state.AQL' = 'min.DEQ.criteria', 
                                                   'min.other.AQL' = 'min.EPA.criteria', 
                                                   'min.AQL.0' = 'criteria.minimum.criteria.benchmark.value'))
@@ -606,12 +608,12 @@ mydata_clean_noV[mydata_clean_noV$Analyte == "Aminomethylphosphonic acid (AMPA)"
 #### South Coast and South Umpqua pilot season spans years 2014-2015
 mydata_clean_noV[mydata_clean_noV$Basin %in% c("South Coast", "South Umpqua") & mydata_clean_noV$year %in% c(2014, 2015),"year"] <- as.integer(201415)
 
-#### New strategy to generate statistics for "mini-basins" (a subset of stations within a PSP Basin). Duplicate data for mini-basins ####
-miniWFPalmer <- mydata_clean_noV[mydata_clean_noV$Station_Description %in% c("West Fork Palmer at SE Lafayette Hwy", 
-                                                                    "West Fork Palmer Creek at SE Palmer Creek Road", 
-                                                                    "West Fork Palmer at Webfoot Road Bridge"),]
-miniWFPalmer$Basin <- "West Fork Palmer"
-miniCozine <- mydata_clean_noV[mydata_clean_noV$Station_Description %in% c("Lower Cozine Creek at Davis Street Bridge", 
-                                                                           "Middle Cozine at Old Sheridan Road"),]
-miniCozine$Basin <- "Cozine Creek"
-mydata_clean_noV <- rbind(mydata_clean_noV, miniWFPalmer, miniCozine)
+# #### New strategy to generate statistics for "mini-basins" (a subset of stations within a PSP Basin). Duplicate data for mini-basins ####
+# miniWFPalmer <- mydata_clean_noV[mydata_clean_noV$Station_Description %in% c("West Fork Palmer at SE Lafayette Hwy", 
+#                                                                     "West Fork Palmer Creek at SE Palmer Creek Road", 
+#                                                                     "West Fork Palmer at Webfoot Road Bridge"),]
+# miniWFPalmer$Basin <- "West Fork Palmer"
+# miniCozine <- mydata_clean_noV[mydata_clean_noV$Station_Description %in% c("Lower Cozine Creek at Davis Street Bridge", 
+#                                                                            "Middle Cozine at Old Sheridan Road"),]
+# miniCozine$Basin <- "Cozine Creek"
+# mydata_clean_noV <- rbind(mydata_clean_noV, miniWFPalmer, miniCozine)

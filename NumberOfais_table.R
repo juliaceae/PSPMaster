@@ -75,6 +75,7 @@ write.csv(N.ai.bystation.LL, paste0("\\\\deqhq1\\PSP\\Rscripts\\Alldates\\", Sys
 ##################################################################################
 
 ################################################
+#Statewide summaries for Sarah Whitney at Long Tom WC
 library("plyr")
 #install.packages("dplyr")
 library("dplyr")
@@ -114,3 +115,26 @@ write.csv(StateCompare.max, paste0("//deqhq1/PSP/AnnualReports/Statewide_2015_ma
 #StateCompare.n.ai <- cast(mmm, Basin ~ ., function(x) n.analytes = length((na.omit(x))))
 N.Analytes.byBasin <- ddply(mydata_clean_noV[mydata_clean_noV$dnd == 1 & mydata_clean_noV$year == 2015,], .(Basin), summarise, N.Analytes = length(unique(Analyte)))
 N.Analytes.byBasin <- N.Analytes.byBasin[order(N.Analytes.byBasin$N.Analytes, decreasing = TRUE),]
+
+###########################
+##Amazon Basin info request: How many detects in each sample? 
+
+library("plyr")
+
+N.Analytes.byDateStation <- ddply(mydata_clean_noV[mydata_clean_noV$Basin == "Amazon" & mydata_clean_noV$Analyte != "Total Solids", ], c("Station_Description", "date"), summarise, N.Analytes = sum(dnd))
+N.Analytes.byDateStation <- N.Analytes.byDateStation[order(N.Analytes.byDateStation$N.Analytes),]
+
+View(N.Analytes.byDateStation)
+write.csv(N.Analytes.byDateStation, paste0("//deqhq1/PSP/Amazon/2015Amazon/Amazon_2011-2015_N.analytes.byDateStation_savedon", Sys.Date(), ".csv")) 
+
+N.Analytes.byDate <- ddply(mydata_clean_noV[mydata_clean_noV$Basin == "Amazon" & mydata_clean_noV$Analyte != "Total Solids", ], c("date"), summarise, N.Analytes = sum(dnd))
+N.Analytes.byDate <- N.Analytes.byDate[order(N.Analytes.byDate$N.Analytes),]
+
+View(N.Analytes.byDate)
+
+write.csv(N.Analytes.byDate, paste0("//deqhq1/PSP/Amazon/2015Amazon/Amazon_2011-2015_N.analytes.byDate_savedon", Sys.Date(), ".csv")) 
+
+
+# oha <- criteria.values.melted.applicable[criteria.values.melted.applicable$variable %in% c('OHA Maximum Contaminant Levels','OHA.MCL'),]
+# oha.casted <- dcast(oha)
+# oha.casted <- dcast(oha, Pollutant ~ variable, value.var = "value")

@@ -863,3 +863,25 @@ ggsave(filename = paste0("\\\\Deqhq1\\PSP\\Yamhill\\2015Yamhill\\", B, "_", stn.
        plot = a, 
        scale = 1.3)
 
+####################################################
+#broken axis experiment
+#BTW, current ggplot2 advice is no axis gaps.  Use a table!
+install.packages("plotrix")
+library(plotrix)
+gap.barplot(aaa$Max, gap=c(3,12), xaxlab = paste0(aaa$Station.Description, aaa$Parameter))
+
+dotchart(aaa$Max, labels=paste0(aaa$Parameter), xlab="Maximum ug/L in 2015", groups=as.factor(aaa$Station.Description))
+
+#http://polisci.msu.edu/jacoby/research/dotplots/tpm/Creating%20figures/Creating%20Figure%204.R
+
+library(ggplot2)
+ggplot(aaa, aes(x = Station.Description, y = Max, colour = Parameter, size=5)) +
+  geom_point()
+
+library(ggplot2)
+ggplot(Det.freq.table, aes(x = Max, y = Station.Description)) +
+  geom_point()
+
+library(ggplot2)
+ggplot(mydata_clean_noV, aes(x = RESULT_clean.ug.l, y = Station.Description)) +
+  geom_point()

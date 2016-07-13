@@ -245,7 +245,7 @@ for (B in unique(mydata_clean_noV$Basin)){
   write.csv(subset.B, paste0("\\\\Deqhq1\\PSP\\Rscripts\\Alldates\\",Sys.Date(), "\\", Sys.Date(), "_by_Basin_alldates_datafiles\\", B, "_alldates_mydata_clean_noV_savedon", Sys.Date(),".csv")) 
 }
 
-####
+############################################
 #cross tab (updated) the exceedance types and write a .csv by basin and year
 library(reshape2)
 
@@ -373,6 +373,7 @@ write.csv(PE, paste0("//deqhq1/PSP/Wasco/Wasco2015/Fifteenmile_2015_percentexcee
 
 #########################
 #Yamhill one off detection frequencies for this station (mini-basins) only. 
+library(reshape)
 library(reshape2)
 #install.packages("plyr")
 library(plyr)
@@ -393,7 +394,7 @@ mmm$exceed.type <- factor(mmm$exceed.type, levels = c('less than ten percent of 
 mmm <- melt(mmm)
 PE <- cast(mmm,  Analyte ~ exceed.type, function(x) sum(x, na.rm=FALSE), margins = "grand_col")
 PE.tot <- cast(mmm, Analyte ~ . , function(x) length(x))
-PE <- merge(PEm, PE.tot, by.x = "Analyte", by.y = "Analyte", all.x = TRUE)
+PE <- merge(PE, PE.tot, by.x = "Analyte", by.y = "Analyte", all.x = TRUE)
 #PEm <- melt(PE)
 PE$det.freq.PE <- PE$value/PE$`(all)`
 PE <- PE[ , c(1,3,5)]
